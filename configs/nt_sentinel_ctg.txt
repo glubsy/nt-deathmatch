@@ -1,0 +1,446 @@
+"Coordinates"
+{
+	"player coordinates"
+	{
+		"south spawn 1"
+		{
+			"coordinates"	"3215.968750 -214.312500 400.531250"
+			"angles"		"13.797758 -172.748871 0.0"
+		}
+		"south spawn 2"
+		{
+			"coordinates"	"3220.125000 229.468750 400.531250"
+			"angles"		"6.381006 169.626175 0.0"
+		}
+		"south west dark dead-end"
+		{
+			"coordinates"	"2769.250000 -644.906250 335.531250"
+			"angles"		"7.656001 174.807739 0.0"
+		}
+		"south east dark dead-end"
+		{
+			"coordinates"	"2795.593750 704.218750 335.531250"
+			"angles"		"9.011747 -177.855576 0.0"
+		}
+		"south east dark dead-end"
+		{
+			"coordinates"	"2375.725342 -5.333036 335.531250"
+			"angles"		"52.649906 9.131637 0.0"
+		}
+		"south east under stairs"
+		{
+			"coordinates"	"2008.468750 976.312500 98.531250"
+			"angles"		"8.373751 -7.031294 0.0"
+		}
+		"south-east east middle corridor"
+		{
+			"coordinates"	"1793.797729 480.747162 335.531250"
+			"angles"		"56.463017 -166.913574 0.0"
+		}
+		"south-west west middle corridor"
+		{
+			"coordinates"	"1852.996338 -480.553711 335.531250"
+			"angles"		"44.181538 163.020798 0.0"
+		}
+		"south west under stairs"
+		{
+			"coordinates"	"2160.210205 -960.503113 98.531250"
+			"angles"		"15.710785 164.384888 0.0"
+		}
+		"south-west west lower corridor"
+		{
+			"coordinates"	"1880.218750 -487.437500 44.531250"
+			"angles"		"40.991547 165.829010 0.00"
+		}
+		"south-east east lower corridor"
+		{
+			"coordinates"	"1811.252075 483.614044 44.53125"
+			"angles"		"49.205822 -91.276787 0.0"
+		}
+		"south elevator middle"
+		{
+			"coordinates"	"1965.576172 -0.345985 175.531235"
+			"angles"		"8.772558 177.888168 0.0"
+		}
+		"south elevator ground"
+		{
+			"coordinates"	"1916.656250 51.156250 44.468750"
+			"angles"		"62.125359 -56.417583 0.0"
+		}
+		"south-west ground"
+		{
+			"coordinates"	"1218.781250 -1519.968750 44.531250"
+			"angles"		"27.354383 72.201927 0.00"
+		}
+		"south-west ground inside concrete thingy FIX?"
+		{
+			"coordinates"	"974.996155 -979.418274 30.0"
+			"angles"		"14.913383 169.575882 0.0"
+		}
+		"south-west ground between crates"
+		{
+			"coordinates"	"1320.125000 -1216.218750 44.531250"
+			"angles"		"51.678150 31.218317 0.0"
+		}
+		"south west ground between crate and pillar"
+		{
+			"coordinates"	"1078.218750 -325.875000 44.531250"
+			"angles"		"73.290375 6.495879 0.0"
+		}
+		"south ground behind container"
+		{
+			"coordinates"	"1449.554077 15.662169 44.248550"
+			"angles"		"48.567913 110.737579 0.0"
+		}
+		"south-east center by crane"
+		{
+			"coordinates"	"1006.218750 388.250000 44.281250"
+			"angles"		"66.192612 138.330841 0.0"
+		}
+		"south-east ground by container"
+		{
+			"coordinates"	"1219.000000 790.156250 44.531250"
+			"angles"		"53.033901 -148.610352 0.0"
+		}
+		"south east ground behind container"
+		{
+			"coordinates"	"1348.125000 1487.750000 44.531250"
+			"angles"		"31.341911 -155.070480 0.0"
+		}
+		"south east ground between containers"
+		{
+			"coordinates"	"1217.718750 1233.093750 44.531250"
+			"angles"		"62.763382 179.967865 0.00"
+		}
+		"east ground along wall"
+		{
+			"coordinates"	"323.687500 1519.968750 44.531250"
+			"angles"		"49.923595 -103.233078 0.0"
+		}
+		"north-east ground between containers"
+		{
+			"coordinates"	"-215.218750 1274.531250 44.531250"
+			"angles"		"40.194092 -6.168675 0.0"
+		}
+		"north east ground inside concrete thing FIX? "
+		{
+			"coordinates"	"33.468750 965.687500 32.781250"
+			"angles"		"50.162823 -11.847837 0.0"
+		}
+		"north east ground behind containers"
+		{
+			"coordinates"	"-338.927002 1519.968750 44.531250
+			"angles"		"18.269123 -127.511070 0.0"
+		}
+		"north east ground between pillars"
+		{
+			"coordinates"	"-45.377804 663.245117 44.531250"
+			"angles"		"62.211399 30.562119 0.0"
+		}
+		"north ground middle behind crates"
+		{
+			"coordinates"	"-439.013184 1.019496 44.531250"
+			"angles"		"62.450672 19.645287 0.0"
+		}
+		"north ground between pillars"
+		{
+			"coordinates"	"-50.046658 -315.401337 44.531250"
+			"angles"		"42.273930 -52.210083 0.0"
+		}
+		"north ground between pillars and crane"
+		{
+			"coordinates"	"-47.293343 -673.000671 44.531250"
+			"angles"		"50.408440 -103.967758 0.0"
+		}
+		"north-west ground behind container"
+		{
+			"coordinates"	"-226.250000 -1312.937500 44.531250"
+			"angles"		"4.871184 101.707878 0.0"
+		}
+		"west ground along wall"
+		{
+			"coordinates"	"309.402802 -1056.031250 44.531250"
+			"angles"		"32.305187 -32.511292 0.0"
+		}
+		"south middle"
+		{
+			"coordinates"	"1470.425659 -22.705374 330.531250"
+			"angles"		"13.563907 173.819199 0.0"
+		}
+		
+		
+		"south west behind dark crate"
+		{
+			"coordinates"	"1412.299805 -1322.537109 330.531250"
+			"angles"		"50.009651 -41.337322 0.000000"
+		}
+		"south west middle by pillar"
+		{
+			"coordinates"	"1076.372803 -790.421997 330.531250"
+			"angles"		"15.796903 -152.987564 0.0"
+		}
+		"west middle by wodden wall"
+		{
+			"coordinates"	"848.031250 -1512.376465 330.531250"
+			"angles"		"26.164398 53.246216 0.0"
+		}
+		"west middle along wall"
+		{
+			"coordinates"	"728.321899 -1056.142090 330.531250"
+			"angles"		"45.703148 -153.314728 0.0"
+		}
+		"west on top of airvent"
+		{
+			"coordinates"	"540.774475 -1056.031250 480.677856"
+			"angles"		"33.900158 -82.009613 0.0"
+		}
+		"west middle along wall by wooden wall"
+		{
+			"coordinates"	"133.513351 -1056.005371 330.531250"
+			"angles"		"68.992249 -156.557755 0.0"
+		}
+		"north west middle by wall"
+		{
+			"coordinates"	"-489.281250 -798.375000 330.531250"
+			"angles"		"71.305016 -7.744575 0.0"
+		}
+		"north next to crates"
+		{
+			"coordinates"	"-282.684845 -272.424347 340.397552"
+			"angles"		"62.373001 5.653383 0.0"
+		}
+		"north middle center"
+		{
+			"coordinates"	"-470.437500 116.593750 340.531250"
+			"angles"		"44.588749 -38.049915 0.0"
+		}
+		"north east moddle by pillar"
+		{
+			"coordinates"	"-48.468750 809.906250 340.531250"
+			"angles"		"33.423775 163.495758 0.0"
+		}
+		"north-east middle dark crates corner "
+		{
+			"coordinates"	"-209.251251 1501.390137 340.052185"
+			"angles"		"45.944519 -179.588745 0.0"
+		}
+		"east middle along wall"
+		{
+			"coordinates"	"146.815002 1501.990967 340.531250"
+			"angles"		"34.699768 -129.975723 0.0"
+		}
+		"east middle on top of airvent"
+		{
+			"coordinates"	"556.343750 1056.031250 470.312500"
+			"angles"		"68.433990 -3.084522 0.0"
+		}
+		"east middle along wall"
+		{
+			"coordinates"	"855.531250 1519.968750 340.531250"
+			"angles"		"34.141476 -28.046265 0.0"
+		}
+		"south east middle by wooden wall and crates"
+		{
+			"coordinates"	"1424.406250 1103.656250 340.531250"
+			"angles"		"34.221218 -55.631054 0.0"
+		}
+		"south-east by pillar"
+		{
+			"coordinates"	"1038.213745 657.877258 340.531250"
+			"angles"		"59.980488 -76.357285 0.0"
+		}
+		
+		
+		"ground center under tank"
+		{
+			"coordinates"	"431.821045 -15.889641 30.668350"
+			"angles"		"48.567913 110.737579 0.0"
+		}
+		"west center west wall"
+		{
+			"coordinates"	"499.467865 -1004.613586 340.531250"
+			"angles"		"56.717133 101.170639 0.0"
+		}
+		"west center east wall"
+		{
+			"coordinates"	"526.182007 1002.418518 340.531250"
+			"angles"		"78.329361 -93.818115 0.0"
+		}
+		
+		"north spawn 1 "
+		{
+			"coordinates"	"-2228.443848 224.776093 400.531250"
+			"angles"		"14.050878 -1.457989 0.0"
+		}
+		"north spawn 2"
+		{
+			"coordinates"	"-2213.685791 -223.385147 400.531250"
+			"angles"		"26.970388 2.848519 0.0"
+		}
+		"north-west dark cornder middle"
+		{
+			"coordinates"	"-1734.454102 -680.650269 335.531250"
+			"angles"		"18.516891 -0.182051 0.0"
+		}
+		"north-east dark corner middle"
+		{
+			"coordinates"	"-1738.503052 676.252258 335.531250"
+			"angles"		"7.112630 -4.346066 0.0"
+		}
+		"north middle center door"
+		{
+			"coordinates"	"-1333.203857 -3.381919 335.531250"
+			"angles"		"54.723385 -0.597897 0.0"
+		}
+		"north east middle corridor"
+		{
+			"coordinates"	"-867.812500 495.968750 335.531250"
+			"angles"		"64.612404 -80.187950 0.0"
+		}
+		"north middle looking at elevator"
+		{
+			"coordinates"	"-1231.992432 -129.836166 335.531250"
+			"angles"		"36.779648 15.910794 0.0"
+		}
+		"west middle north-west corridor"
+		{
+			"coordinates"	"-649.834839 -495.968750 335.531250"
+			"angles"		"61.183167 72.932014 0.0"
+		}
+		"north west ground under stairs"
+		{
+			"coordinates"	"-1001.434021 -981.428467 105.531250"
+			"angles"		"50.416889 136.723480 0.0"
+		}
+		"north east ground under stairs"
+		{
+			"coordinates"	"-992.156921 976.338745 105.531250"
+			"angles"		"47.363201 -62.890900 0.0"
+		}
+		"east ground corridor"
+		{
+			"coordinates"	"-873.656250 304.031250 39.531250"
+			"angles"		"18.995409 115.270668 0.0"
+		}
+		"north elevator ground"
+		{
+			"coordinates"	"-893.281250 -52.125000 39.468750"
+			"angles"		"16.682667 147.569626 0.0"
+		}
+		"north west ground west corridor"
+		{
+			"coordinates"	"-861.208923 -305.376373 39.531250"
+			"angles"		"15.566165 -126.619324 0.0"
+		}
+		"north elevator middle"
+		{
+			"coordinates"	"-932.842163 -31.444893 160.531235"
+			"angles"		"-26.701378 57.859947 0.0"
+		}
+		
+		
+		"south high floor"
+		{
+			"coordinates"	"2138.310791 -17.782970 615.531250"
+			"angles"		"8.388606 178.911713 0.0"
+		}
+		"south high floor inner"
+		{
+			"coordinates"	"1508.929932 56.016289 615.531250"
+			"angles"		"31.755341 -178.926544 0.0"
+		}
+		"south west cart high floor"
+		{
+			"coordinates"	"1383.156250 -319.218750 615.531250"
+			"angles"		"26.412088 -159.467728 0.0"
+		}
+		"south elevator high floor"
+		{
+			"coordinates"	"	"
+			"angles"		"39.012611 38.240929 0.0"
+		}
+		"south west by cart"
+		{
+			"coordinates"	"1260.277466 -1215.727051 615.531250"
+			"angles"		"18.197845 -129.313629 0.0"
+		}
+		"west behind green crate"
+		{
+			"coordinates"	"530.735596 -1376.290161 615.531250"
+			"angles"		"60.226093 87.623665 0.0"
+		}
+		"north-west between crates "
+		{
+			"coordinates"	"-179.687500 -1360.500000 615.531250"
+			"angles"		"8.707589 -170.615417 0.0"
+		}
+		"north west high floor by pillar"
+		{
+			"coordinates"	"-127.922157 -711.290833 615.531250"
+			"angles"		"44.196350 -162.082260 0.0"
+		}
+		"north high floor inner"
+		{
+			"coordinates"	"-106.131882 26.399662 615.531250"
+			"angles"		"55.441120 124.157883 0.0"
+		}
+		"north high floor by elevator door"
+		{
+			"coordinates"	"-1205.627563 26.974220 615.53125"
+			"angles"		"16.602877 -5.355933 0.0"
+		}
+		"north elevator high floor "
+		{
+			"coordinates"	"191.854858 320.964264 615.691284"
+			"angles"		"47.226887 -88.614899 0.0"
+		}
+		"north east high floor behind container"
+		{
+			"coordinates"	"-384.519470 1263.411011 615.531250"
+			"angles"		"59.667870 -24.080135 0.0"
+		}
+		"east high floor high floor"
+		{
+			"coordinates"	"506.897430 1391.935303 615.531250"
+			"angles"		"33.430084 -83.095299 0.0"
+		}
+		"east high floor between crates dark corner"
+		{
+			"coordinates"	"1211.160645 1373.798218 615.531250"
+			"angles"		"18.995409 115.270668 0.0"
+		}
+		"south east high floor by pillar"
+		{
+			"coordinates"	"1182.924072 269.477356 615.248535"
+			"angles"		"51.772587 83.439888 0.00"
+		}		
+		
+		
+	}
+	"Ammo drops"
+	{
+		"1"
+		{
+			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"2"
+		{
+			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"angles"		"0.0 0.0 0.0"
+		}
+	}
+	"ladders"
+	{
+		"1"
+		{
+			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"2"
+		{
+			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"angles"		"0.0 0.0 0.0"
+		}
+	}
+}
