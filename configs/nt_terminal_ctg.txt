@@ -1,0 +1,384 @@
+"Coordinates"
+{
+	"player coordinates"
+	{
+		"top stairs east"
+		{
+			"coordinates"	"287.520508 -494.871246 270.0"
+			"angles"		"4.387301 -176.338593 0.0"
+		}
+		"top stairs east south"
+		{
+			"coordinates"	"767.269653 -395.647827 270.0"
+			"angles"		"11.166076 1.025175 0.0"
+		}
+		"top bridge east"
+		{
+			"coordinates"	"383.611908 -850.298340 270.0"
+			"angles"		"51.837490 -48.232094 0.0"
+		}
+		"top bridge east2"
+		{
+			"coordinates"	"487.204865 -1263.894531 270.0"
+			"angles"		"60.370735 -40.815350 0.0"
+		}
+		"observation room"
+		{
+			"coordinates"	"506.994141 -1862.734131 270.071320"
+			"angles"		"27.513720 -141.539444 0.0"
+		}
+		"top bridge west"
+		{
+			"coordinates"	"539.593750 -2760.125000 270.0"
+			"angles"		"30.863226 134.651825 0.0"
+		}
+		"yellow vans"
+		{
+			"coordinates"	"-2144.812500 -664.906250 17.531250"
+			"angles"		"1.276012 136.554230 0.0"
+		}
+		"red door"
+		{
+			"coordinates"	"-810.750000 63.218750 17.53125"
+			"angles"		"8.068670 43.584980 0.0"
+		}
+		"4 pillars"
+		{
+			"coordinates"	"318.406250 -144.625000 31.968750"
+			"angles"		"53.565704 1.408345 0.0"
+		}
+		"below stairs outisde"
+		{
+			"coordinates"	"1080.721191 -475.980560 57.531250"
+			"angles"		"59.227955 -50.349533 0.0"
+		}
+		"opposite side of stairs outside"
+		{
+			"coordinates"	"1077.250000 89.531250 57.531250"
+			"angles"		"33.707928 29.471186 0.0"
+		}
+		"in the tree"
+		{
+			"coordinates"	"1463.218750 -180.687500 115.218750"
+			"angles"		"-26.635498 -2.189811 0.0"
+		}
+		"white base"
+		{
+			"coordinates"	"2280.468750 -80.468750 18.531250"
+			"angles"		"7.656985 145.108490 0.0"
+		}
+		"white base2"
+		{
+			"coordinates"	"2058.031250 -428.125000 17.531250"
+			"angles"		"9.730485 17.189358 0.0"
+		}
+		"facing bunker"
+		{
+			"coordinates"	"1937.593750 -702.500000 19.093750"
+			"angles"		"10.846979 -81.151039 0.0"
+		}
+		"on top of bunker"
+		{
+			"coordinates"	"2263.125000 -834.968750 154.843750"
+			"angles"		"63.003494 -96.383369 0.0"
+		}
+		"big metalic door"
+		{
+			"coordinates"	"2766.687500 -1112.812500 17.531250"
+			"angles"		"20.496725 98.126823 0.0"
+		}
+		"big metalic door2"
+		{
+			"coordinates"	"2732.625000 -1358.125000 17.531250"
+			"angles"		"12.920475 118.463150 0.0"
+		}
+		"big metalic door3"
+		{
+			"coordinates"	"2684.406250 -1622.750000 18.687500"
+			"angles"		"5.344223 102.433685 0.0"
+		}		
+		"big metalic door4"
+		{
+			"coordinates"	"2756.625000 -2288.031250 17.531250"
+			"angles"		"11.803932 71.163177 0.0"
+		}
+		"big metalic door5"
+		{
+			"coordinates"	"2734.000000 -2536.218750 17.531250"
+			"angles"		"19.061186 106.102257 0.0"
+		}
+		"end of metalic doors"
+		{
+			"coordinates"	"2653.875000 -3216.750000 19.750000"
+			"angles"		"8.693686 -134.910507 0.0"
+		}
+		"ontop of bunker west"
+		{
+			"coordinates"	"2297.687500 -3067.187500 151.843750"
+			"angles"		"57.261444 10.898473 0.0"
+		}
+		"next to bunker west"
+		{
+			"coordinates"	"1963.125000 -3119.750000 17.531250"
+			"angles"		"21.533434 -171.401688 0.0"
+		}		
+		"base west"
+		{
+			"coordinates"	"2402.437500 -3700.437500 17.531250"
+			"angles"		"41.230606 -112.297615 0.0"
+		}
+		"base west2"
+		{
+			"coordinates"	"1958.000000 -3373.656250 17.531250"
+			"angles"		"10.208948 -46.513283 0.0"
+		}
+		"understairs west parking"
+		{
+			"coordinates"	"1056.375000 -3307.812500 17.531250"
+			"angles"		"8.853189 171.691620 0.0"
+		}
+		"above west base door"
+		{
+			"coordinates"	"1823.968750 -3594.093750 185.531250"
+			"angles"		"27.354233 -35.951561 0.0"
+		}
+		"between pillars west"
+		{
+			"coordinates"	"483.435638 -3584.818604 61.520569"
+			"angles"		"0.956991 179.541489 0.0"
+		}		
+		"below stairs west outside"
+		{
+			"coordinates"	"-131.486618 -3296.031250 17.531250"
+			"angles"		"22.090742 -53.337162 0.0"
+		}
+		"parking entrace yellow van"
+		{
+			"coordinates"	"-1461.139160 -3652.159912 50.929779"
+			"angles"		"8.852244 142.139496 0.0"
+		}
+		"bunker next parking entrace"
+		{
+			"coordinates"	"-954.576416 -3167.388672 61.672939"
+			"angles"		"7.974993 134.802750 0.0"
+		}
+		"trains north"
+		{
+			"coordinates"	"-1939.843750 -3214.250000 17.53125"
+			"angles"		"16.986738 134.395142 0.0"
+		}
+		"trains north corner"
+		{
+			"coordinates"	"-1987.806396 -2685.078857 17.53125"
+			"angles"		"33.734241 85.348572 0.0"
+		}
+		"trains north corner2"
+		{
+			"coordinates"	"-1974.761841 -2451.949219 17.531250"
+			"angles"		"27.035244 83.426041 0.0"
+		}
+		"top of train"
+		{
+			"coordinates"	"-1007.444580 -2598.604980 246.781250"
+			"angles"		"-50.003273 3.525102 0.0"
+		}
+		"middle bunker"
+		{
+			"coordinates"	"-1422.375000 -1782.625000 73.187500"
+			"angles"		"56.622501 -4.370261 0.0"
+		}
+		"trains corner east"
+		{
+			"coordinates"	"-1999.968750 -1496.392944 17.531250"
+			"angles"		"45.298008 -58.919235 0.0"
+		}
+		"trains corner east2"
+		{
+			"coordinates"	"-1945.978882 -996.797363 17.531250"
+			"angles"		"33.707928 29.471186 0.0"
+		}
+		"between train containers"
+		{
+			"coordinates"	"-1418.937500 -1197.656250 137.531250"
+			"angles"		"12.999231 -3.564096 0.0"
+		}
+		"top of observer room"
+		{
+			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"angles"		"82.461472 -42.481438 0.0"
+		}
+		"ceiling west south"
+		{
+			"coordinates"	"1169.109131 -2700.483643 449.531250"
+			"angles"		"-41.549793 114.440872 0.0"
+		}
+		"ceiling east south"
+		{
+			"coordinates"	"1207.926270 -1093.931763 440.531250"
+			"angles"		"-38.120590 -114.362549 0.0"
+		}
+		"ceiling east north"
+		{
+			"coordinates"	"-115.237968 -1096.086548 449.531250"
+			"angles"		"-41.230858 -68.346863 0.0"
+		}
+		"ceiling west north"
+		{
+			"coordinates"	"-289.500000 -2705.562500 444.531250"
+			"angles"		"-40.513172 63.320347 0.0"
+		}
+		"west ground level south-west"
+		{
+			"coordinates"	"985.343750 -3296.281250 9.0"
+			"angles"		"14.276289 -101.533409 0.0"
+		}
+		"west ground level north-west"
+		{
+			"coordinates"	"-41.882122 -3299.791748 9.0"
+			"angles"		"5.344223 102.433685 0.0"
+		}
+		"east ground level north-east"
+		{
+			"coordinates"	"-13.886995 -490.599609 9.0"
+			"angles"		"35.729000 100.945694 0.0"
+		}
+		"east ground level south-east"
+		{
+			"coordinates"	"975.757080 -495.968750 9.0"
+			"angles"		"38.360760 62.984726 0.0"
+		}
+		"west top level"
+		{
+			"coordinates"	"262.656799 -3296.031250 270.0"
+			"angles"		"22.410824 -164.057373 0.0"
+		}
+		"west top level south"
+		{
+			"coordinates"	"737.965698 -3306.883789 270.0"
+			"angles"		"15.153572 55.893154 0.0"
+		}
+		"hangar under north-west stairs"
+		{
+			"coordinates"	"309.300232 -3231.597168 17.531250"
+			"angles"		"40.912800 131.114655 0.0"
+		}
+		"hangar north-west by crates"
+		{
+			"coordinates"	"-703.562500 -3247.968750 17.531250"
+			"angles"		"24.803253 -173.858368 0.0"
+		}
+		"hangar under south-west stairs"
+		{
+			"coordinates"	"701.843750 -3236.031250 17.5"
+			"angles"		"57.261444 10.898473 0.0"
+		}
+		"hangar south-west by crates"
+		{
+			"coordinates"	"1678.095581 -3236.510498 17.531250"
+			"angles"		"41.710308 -132.626968 0.0"
+		}
+		"hangar under north-east stairs"
+		{
+			"coordinates"	"283.863678 -583.997437 17.531250"
+			"angles"		"22.171476 9.518456 0.0"
+		}
+		"hangar north-east by crates"
+		{
+			"coordinates"	"-713.638062 -574.852783 17.531250"
+			"angles"		"5.982231 116.463181 0.0"
+		}
+		"hangar under south-east stairs"
+		{
+			"coordinates"	"639.481934 -570.930298 17.53125"
+			"angles"		"40.035492 -173.747147 0.0"
+		}
+		"hangar south-east by crates"
+		{
+			"coordinates"	"1675.515747 -552.546204 17.531250"
+			"angles"		"29.668009 21.888166 0.0"
+		}
+		"between train containers west hangar"
+		{
+			"coordinates"	"367.437500 -2598.718750 90.531250"
+			"angles"		"42.667274 -3.335558 0.0"
+		}
+		"between train containers east hangar"
+		{
+			"coordinates"	"478.436157 -1207.581299 90.531265"
+			"angles"		"38.281013 164.036057 0.0"
+		}
+		"top of train container north-west hangar"
+		{
+			"coordinates"	"-436.806152 -2369.911865 198.0"
+			"angles"		"47.771278 -179.990845 0.0"
+		}
+		"top of train container south-west hangar"
+		{
+			"coordinates"	"1013.911133 -2601.217041 198.5"
+			"angles"		"64.359268 2.812986 0.0"
+		}
+		"top of train container south-east hangar"
+		{
+			"coordinates"	"1071.687500 -1202.781250 198.5"
+			"angles"		"53.194218 3.991287 0.0"
+		}
+		"top of train container north-east  hangar"
+		{
+			"coordinates"	"31.232487 -1419.333618 246.781250"
+			"angles"		"56.144978 178.651886 0.0"
+		}
+		"hangar ground level north middle"
+		{
+			"coordinates"	"-471.561096 -1880.359741 15.531250"
+			"angles"		"58.298260 -12.418800 0.0"
+		}
+		"hangar ground level south middle"
+		{
+			"coordinates"	"1237.447876 -1551.143677 65.248749"
+			"angles"		"52.715717 -177.385941 0.0"
+		}
+		"below obs room north-east"
+		{
+			"coordinates"	"144.164001 -1739.552124 155.531250"
+			"angles"		"39.238003 77.300064 0.0"
+		}
+		"below obs room north-west"
+		{
+			"coordinates"	"123.265877 -2067.933838 155.531250"
+			"angles"		"56.145004 -52.843376 0.0"
+		}
+		"below obs room south-west"
+		{
+			"coordinates"	"845.609009 -2035.998779 155.531250"
+			"angles"		"58.617252 -151.644821 0.0"
+		}
+		"below obs room south-east"
+		{
+			"coordinates"	"834.104126 -1733.387939 155.531250"
+			"angles"		"34.054192 113.045311 0.0"
+		}
+		"middle bunker room hangar north east"
+		{
+			"coordinates"	"120.031151 -1672.153320 15.531250"
+			"angles"		"62.524967 -43.742867 0.0"
+		}
+		"middle bunker room hangar south-west"
+		{
+			"coordinates"	"838.558655 -2138.018799 15.531250"
+			"angles"		"57.660221 139.522858 0.0"
+		}
+	}
+	"Ammo drops"
+	{
+		"1"
+		{
+			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"2"
+		{
+			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"angles"		"0.0 0.0 0.0"
+		}
+	}
+}
