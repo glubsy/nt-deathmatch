@@ -122,14 +122,14 @@
 			"coordinates"	"-215.218750 1274.531250 44.531250"
 			"angles"		"40.194092 -6.168675 0.0"
 		}
-		"north east ground inside concrete thing FIX? "
+		"north east ground inside concrete thing FIX"
 		{
 			"coordinates"	"33.468750 965.687500 32.781250"
 			"angles"		"50.162823 -11.847837 0.0"
 		}
 		"north east ground behind containers"
 		{
-			"coordinates"	"-338.927002 1519.968750 44.531250
+			"coordinates"	"-338.927002 1519.968750 44.531250"
 			"angles"		"18.269123 -127.511070 0.0"
 		}
 		"north east ground between pillars"
@@ -167,8 +167,6 @@
 			"coordinates"	"1470.425659 -22.705374 330.531250"
 			"angles"		"13.563907 173.819199 0.0"
 		}
-		
-		
 		"south west behind dark crate"
 		{
 			"coordinates"	"1412.299805 -1322.537109 330.531250"
@@ -249,8 +247,6 @@
 			"coordinates"	"1038.213745 657.877258 340.531250"
 			"angles"		"59.980488 -76.357285 0.0"
 		}
-		
-		
 		"ground center under tank"
 		{
 			"coordinates"	"431.821045 -15.889641 30.668350"
@@ -266,8 +262,7 @@
 			"coordinates"	"526.182007 1002.418518 340.531250"
 			"angles"		"78.329361 -93.818115 0.0"
 		}
-		
-		"north spawn 1 "
+		"north spawn 1"
 		{
 			"coordinates"	"-2228.443848 224.776093 400.531250"
 			"angles"		"14.050878 -1.457989 0.0"
@@ -337,8 +332,6 @@
 			"coordinates"	"-932.842163 -31.444893 160.531235"
 			"angles"		"-26.701378 57.859947 0.0"
 		}
-		
-		
 		"south high floor"
 		{
 			"coordinates"	"2138.310791 -17.782970 615.531250"
@@ -413,34 +406,140 @@
 		{
 			"coordinates"	"1182.924072 269.477356 615.248535"
 			"angles"		"51.772587 83.439888 0.00"
-		}		
-		
-		
-	}
-	"Ammo drops"
-	{
-		"1"
-		{
-			"coordinates"	"427.531250 -1887.375000 441.071320"
-			"angles"		"0.0 0.0 0.0"
-		}
-		"2"
-		{
-			"coordinates"	"427.531250 -1887.375000 441.071320"
-			"angles"		"0.0 0.0 0.0"
 		}
 	}
-	"ladders"
+	"Ammopacks"
 	{
-		"1"
+		"south top"
 		{
-			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"coordinates"	"2460.8 4.0 628.0"
 			"angles"		"0.0 0.0 0.0"
 		}
-		"2"
+		"north top"
 		{
-			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"coordinates"	"-1389.5 4.0 628.0"
 			"angles"		"0.0 0.0 0.0"
+		}
+		"north middle by elevator"
+		{
+			"coordinates"	"-1117.0 7.0 330.0"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"south middle by elevator"
+		{
+			"coordinates"	"2174.0 7.0 330.0"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"middle west"
+		{
+			"coordinates"	"521.0 -1484.0 350.0"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"middle east"
+		{
+			"coordinates"	"484.0 1128.0 350.0"
+			"angles"		"0.0 0.0 0.0"
+		}
+	}
+	"Grenadepacks"
+	{
+		"below spidertank"
+		{
+			"coordinates"	"516.0 380.0 20.0"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"ground level by elevator south"
+		{
+			"coordinates"	"2165.0 0.0 12.0"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"ground level by elevator north"
+		{
+			"coordinates"	"-1180.0 0.0 12.0"
+			"angles"		"0.0 0.0 0.0"
+		}
+	}
+	"Ladders"
+	{
+		"east-lower"
+		{
+			"coordinates"	"338.0 923.0 325.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"east2"
+		{
+			"coordinates"	"338.0 923.0 360.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"east3"
+		{
+			"coordinates"	"338.0 923.0 400.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"east4"
+		{
+			"coordinates"	"338.0 923.0 440.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"east5"
+		{
+			"coordinates"	"338.0 923.0 480.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"east6"
+		{
+			"coordinates"	"338.0 923.0 520.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"east7"
+		{
+			"coordinates"	"338.0 923.0 560.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"east8"
+		{
+			"coordinates"	"338.0 923.0 600.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"eastb-lower"
+		{
+			"coordinates"	"725.0 923.0 325.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"eastb2"
+		{
+			"coordinates"	"725.0 923.0 360.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"eastb3"
+		{
+			"coordinates"	"725.0 923.0 400.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"eastb-4"
+		{
+			"coordinates"	"725.0 923.0 440.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"eastb5"
+		{
+			"coordinates"	"725.0 923.0 480.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"eastb6"
+		{
+			"coordinates"	"725.0 923.0 520.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"eastb7"
+		{
+			"coordinates"	"725.0 923.0 560.0"
+			"angles"		"10.0 179.0 0.0"
+		}
+		"eastb8"
+		{
+			"coordinates"	"725.0 923.0 600.0"
+			"angles"		"10.0 179.0 0.0"
 		}
 	}
 }
