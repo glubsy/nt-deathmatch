@@ -144,7 +144,7 @@
 		}
 		"between pillars west"
 		{
-			"coordinates"	"483.435638 -3584.818604 61.520569"
+			"coordinates"	"483.435638 -3584.818604 17.520569"
 			"angles"		"0.956991 179.541489 0.0"
 		}		
 		"below stairs west outside"
@@ -154,12 +154,12 @@
 		}
 		"parking entrace yellow van"
 		{
-			"coordinates"	"-1461.139160 -3652.159912 50.929779"
+			"coordinates"	"-1461.139160 -3652.159912 17.929779"
 			"angles"		"8.852244 142.139496 0.0"
 		}
 		"bunker next parking entrace"
 		{
-			"coordinates"	"-954.576416 -3167.388672 61.672939"
+			"coordinates"	"-954.576416 -3167.388672 17.672939"
 			"angles"		"7.974993 134.802750 0.0"
 		}
 		"trains north"
@@ -184,7 +184,7 @@
 		}
 		"middle bunker"
 		{
-			"coordinates"	"-1422.375000 -1782.625000 73.187500"
+			"coordinates"	"-1422.375000 -1782.625000 17.187500"
 			"angles"		"56.622501 -4.370261 0.0"
 		}
 		"trains corner east"
@@ -334,7 +334,7 @@
 		}
 		"hangar ground level south middle"
 		{
-			"coordinates"	"1237.447876 -1551.143677 65.248749"
+			"coordinates"	"1237.447876 -1551.143677 15.248749"
 			"angles"		"52.715717 -177.385941 0.0"
 		}
 		"below obs room north-east"
@@ -368,17 +368,89 @@
 			"angles"		"57.660221 139.522858 0.0"
 		}
 	}
-	"Ammo drops"
+	"Ammopacks"
 	{
-		"1"
+		"Middle vantage room"
 		{
-			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"coordinates"	"481.281250 -1880.468750 273.031250"
 			"angles"		"0.0 0.0 0.0"
 		}
-		"2"
+		"between train containers south-east"
 		{
-			"coordinates"	"427.531250 -1887.375000 441.071320"
+			"coordinates"	"1275.875000 -1199.156250 86.093750"
 			"angles"		"0.0 0.0 0.0"
+		}
+		"between train containers south-west"
+		{
+			"coordinates"	"1250.125000 -2599.406250 86.093750"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"between train containers north-east"
+		{
+			"coordinates"	"-278.812500 -1421.093750 86.093750"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"between train containers north-west"
+		{
+			"coordinates"	"-278.812500 -2367.812500 86.093750"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"blue corridor west"
+		{
+			"coordinates"	"483.562500 -3275.375000 10.500000"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"blue corridor east"
+		{
+			"coordinates"	"483.562500 -512.781250 10.500000"
+			"angles"		"0.0 0.0 0.0"
+		}
+	}
+	"Grenadepacks"
+	{
+		"Middle bunker room"
+		{
+			"coordinates"	"475.375000 -1898.687500 17.000000"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"top of middle vantage point room"
+		{
+			"coordinates"	"474.468750 -1902.281250 412.718750"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"Inside van north-west"
+		{
+			"coordinates"	"-1360.656250 -3546.937500 30.031250"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"Inside van north-east"
+		{
+			"coordinates"	"-2320.062500 -510.937500 30.031250"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"corner room south-east"
+		{
+			"coordinates"	"2011.093750 -192.781250 54.031250"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"corner room south-west"
+		{
+			"coordinates"	"2149.843750 -3586.125000 54.031250"
+			"angles"		"0.0 0.0 0.0"
+		}
+		
+	}
+	"Ladders"
+	{
+		"West bridge"
+		{
+			"coordinates"	"349.0 -2762.0 320.0"
+			"angles"		"0.0 0.0 0.0"
+		}
+		"East bridge"
+		{
+			"coordinates"	"612.5 -1035.0 319.5"
+			"angles"		"0.0 180.0 0.0"
 		}
 	}
 }
