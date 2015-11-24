@@ -114,7 +114,7 @@ new bool:g_LaddersKeyPresent = false;
 new bool:g_LaddersCoordsPresent = false;
 new Float:laddercoords_array[60][3];
 new Float:ladderangles_array[60][3];
-new const String:g_LadderModel[] = "models/ladder2.mdl";
+new const String:g_LadderModel[] = "models/ladder/ladder3.mdl";
 
 new const String:g_AmmoPickupSound[] = "items/ammo_pickup.wav";
 
@@ -171,14 +171,21 @@ public OnPluginStart()
 	// init random number generator
 	SetRandomSeed(RoundToFloor(GetEngineTime()));
 	
+	//Adding custom models to forced download
+	AddFileToDownloadsTable("models/ladder/ladder3.mdl");
+	AddFileToDownloadsTable("models/ladder/ladder3.dx80.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder3.dx90.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder3.phy");
+	AddFileToDownloadsTable("models/ladder/ladder3.sw.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder3.vvd");
+	AddFileToDownloadsTable("models/ladder/ladder3.xbox.vtx");
+	
 	//Precaching models
-	PrecacheModel(g_LadderModel);
-	PrecacheModel(g_GrenadePackModel);
-	PrecacheModel(g_AmmoPackModel);
-	PrecacheSound(g_AmmoPickupSound);
+	PrecacheModel(g_LadderModel, true);
+	PrecacheModel(g_GrenadePackModel, true);
+	PrecacheModel(g_AmmoPackModel, true);
+	PrecacheSound(g_AmmoPickupSound, true);
 }
-
-
 
 public OnConfigsExecuted()
 {
@@ -201,24 +208,31 @@ public OnConfigsExecuted()
 		PrintToChatAll("Random player spawns disabled!");
 	}
 	g_AmmoRespawnTime = GetConVarFloat(convar_nt_tdm_ammo_respawn_time);
-	g_GrenadeRespawnTime = GetConVarFloat(convar_nt_tdm_grenade_respawn_time);	
+	g_GrenadeRespawnTime = GetConVarFloat(convar_nt_tdm_grenade_respawn_time);
+	
+	CheckConvarsPrettyPlease();
 }
 
-
+/*
 public OnAutoConfigsBuffered() {
 	decl String:currentMap[64];
 	GetCurrentMap(currentMap, 64);
 
-	if(StrEqual(currentMap, "nt_terminal_ctg") || StrEqual(currentMap, "nt_sentinel_ctg") || StrEqual(currentMap, "nt_bullet_tdm") || StrEqual(currentMap, "nt_zaibatsu_ctg"))
+	if(StrEqual(currentMap, "nt_terminal_ctg") || StrEqual(currentMap, "nt_sentinel_ctg") || StrEqual(currentMap, "nt_bullet_tdm") || StrEqual(currentMap, "nt_zaibatsu_ctg") && GetConVarInt(convar_nt_tdm_enabled) == 0)
 		SetConVarInt(convar_nt_tdm_enabled, 1); // we enable the convar for TDM automatically on these maps
 	else
 		SetConVarInt(convar_nt_tdm_enabled, 0);
-}
+}*/
 
-public OnMapStart()
+public CheckConvarsPrettyPlease()
 {
-	//InitArray();
-	//if(GetConVarBool(convar_nt_tdm_enabled))
+	decl String:currentMap[64];
+	GetCurrentMap(currentMap, 64);
+
+	if(StrEqual(currentMap, "nt_terminal_ctg") || StrEqual(currentMap, "nt_sentinel_ctg") || StrEqual(currentMap, "nt_bullet_tdm") || StrEqual(currentMap, "nt_zaibatsu_ctg") && GetConVarInt(convar_nt_tdm_enabled) == 0)
+		SetConVarInt(convar_nt_tdm_enabled, 1); // we enable the convar for TDM automatically on these maps
+	else
+		SetConVarInt(convar_nt_tdm_enabled, 0);
 }
 
 public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:newVal[])
@@ -241,6 +255,7 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		StopDeathMatch();
 		
 		CreateTimer(5.0, StartDeatchmatch);   // needs a timer of 5sec to properly start... very weird, I know. -glub
+		
 		//g_DMStarted = true;
 		PrintToChatAll("Team DeathMatch started!");
 		PrintToServer("Team DeathMatch started!");
@@ -459,7 +474,6 @@ public StartDeathmatch()
 
 public StopDeathMatch()
 {
-	InitArray();
 	g_DMStarted = false;
 	new timeLimit = 320;
 	new Handle:hTimeLimit = FindConVar("mp_timelimit");
