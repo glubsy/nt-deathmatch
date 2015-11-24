@@ -420,12 +420,12 @@
 		}
 		"Inside van north-west"
 		{
-			"coordinates"	"-1360.656250 -3546.937500 30.031250"
+			"coordinates"	"-1360.656250 -3515.937500 30.031250"
 			"angles"		"0.0 0.0 0.0"
 		}
 		"Inside van north-east"
 		{
-			"coordinates"	"-2320.062500 -510.937500 30.031250"
+			"coordinates"	"-2280.062500 -510.937500 30.031250"
 			"angles"		"0.0 0.0 0.0"
 		}
 		"corner room south-east"
