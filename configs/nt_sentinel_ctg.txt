@@ -461,85 +461,75 @@
 	}
 	"Ladders"
 	{
-		"east-lower"
+		"east-lowest"
 		{
-			"coordinates"	"338.0 923.0 325.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"324.0 923.0 325.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"east2"
 		{
-			"coordinates"	"338.0 923.0 360.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"324.0 923.0 360.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"east3"
 		{
-			"coordinates"	"338.0 923.0 400.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"324.0 923.0 400.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"east4"
 		{
-			"coordinates"	"338.0 923.0 440.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"324.0 923.0 440.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"east5"
 		{
-			"coordinates"	"338.0 923.0 480.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"324.0 923.0 480.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"east6"
 		{
-			"coordinates"	"338.0 923.0 520.0"
-			"angles"		"10.0 179.0 0.0"
-		}
-		"east7"
-		{
-			"coordinates"	"338.0 923.0 560.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"324.0 923.0 520.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"east8"
 		{
-			"coordinates"	"338.0 923.0 600.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"324.0 923.0 550.0"
+			"angles"		"0.0 179.0 0.0"
 		}
-		"eastb-lower"
+		"eastb-lowest"
 		{
-			"coordinates"	"725.0 923.0 325.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"713.0 923.0 325.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"eastb2"
 		{
-			"coordinates"	"725.0 923.0 360.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"713.0 923.0 360.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"eastb3"
 		{
-			"coordinates"	"725.0 923.0 400.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"713.0 923.0 400.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"eastb-4"
 		{
-			"coordinates"	"725.0 923.0 440.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"713.0 923.0 440.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"eastb5"
 		{
-			"coordinates"	"725.0 923.0 480.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"713.0 923.0 480.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"eastb6"
 		{
-			"coordinates"	"725.0 923.0 520.0"
-			"angles"		"10.0 179.0 0.0"
-		}
-		"eastb7"
-		{
-			"coordinates"	"725.0 923.0 560.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"713.0 923.0 520.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 		"eastb8"
 		{
-			"coordinates"	"725.0 923.0 600.0"
-			"angles"		"10.0 179.0 0.0"
+			"coordinates"	"713.0 923.0 550.0"
+			"angles"		"0.0 179.0 0.0"
 		}
 	}
 }
