@@ -372,7 +372,7 @@
 	{
 		"Middle vantage room"
 		{
-			"coordinates"	"481.281250 -1880.468750 273.031250"
+			"coordinates"	"481.281250 -1880.468750 267.031250"
 			"angles"		"0.0 0.0 0.0"
 		}
 		"between train containers south-east"
@@ -444,13 +444,13 @@
 	{
 		"West bridge"
 		{
-			"coordinates"	"349.0 -2762.0 320.0"
-			"angles"		"0.0 0.0 0.0"
+			"coordinates"	"360.0 -2762.0 319.5"
+			"angles"		"10.0 180.0 0.0"
 		}
 		"East bridge"
 		{
-			"coordinates"	"612.5 -1035.0 319.5"
-			"angles"		"0.0 180.0 0.0"
+			"coordinates"	"600.5 -1035.0 319.5"
+			"angles"		"-10.0 180.0 0.0"
 		}
 	}
 }
