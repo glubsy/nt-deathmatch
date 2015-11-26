@@ -42,7 +42,7 @@ Changelog
 //#define DEBUG 0
 //#define DEBUG 1
 //#define DEBUG 2
-#define DEBUG 0
+#define DEBUG 2
 
 
 public Plugin:myinfo =
@@ -73,7 +73,7 @@ new clientHP[MAXPLAYERS+1];
 	
 new Float:coordinates_array[100][3];  //initializing big array of floats for coordinates
 new Float:angles_array[100][3];	
-
+new bool:g_kvfilefound = false;
 
 int lines = 200;
 int randomint;
@@ -94,7 +94,7 @@ new bool:g_AmmoPackCoordsPresent = false;
 new Float:ammocoords_array[60][3];  //60 is hard coded 30 max possible ammo pack locations, might have to change that
 new Float:ammoangles_array[60][3];
 new ammo_coords_cursor;
-new const String:g_AmmoPackModel[] = "models/items/boxsrounds.mdl";
+new const String:g_AmmoPackModel[] = "models/logo/jinrai_logo.mdl"; //"models/items/boxsrounds.mdl"
 
 new gOffsetMyWeapons, gOffsetAmmo;
 
@@ -120,6 +120,9 @@ new const String:g_AmmoPickupSound[] = "items/ammo_pickup.wav";
 
 //new bool:bUp = true;
 //new bool:b_movestart = false;
+
+new const String:g_DogTagModelNSF[] = "models/logo/nsf_logo.mdl";
+new const String:g_DogTagModelJINRAI[] = "models/logo/jinrai_logo.mdl";
 
 /*
 new const String:gSpawnSounds[][] =
@@ -547,7 +550,88 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 
 		SetTeamScore(attackerTeam, GetTeamScore(attackerTeam) + score);
 	}
+	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+	new Float:deathorigin[3];
+	GetClientAbsOrigin(client,deathorigin);
+	//GetEntPropVector(client, Prop_Send, "m_vecOrigin", deathorigin);
+	
+	SpawnDogTag(deathorigin, g_DogTagModelNSF);
 }
+
+public Action:SpawnDogTag(Float:deathorigin[3], const String:modelname[])
+{
+	decl m_iDogTag;
+
+	if((m_iDogTag = CreateEntityByName("prop_dynamic_override")) != -1)
+	{
+		new String:targetname[100];
+
+		Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);
+
+		DispatchKeyValue(m_iDogTag, "model", modelname);
+		//DispatchKeyValue(m_iDogTag, "physicsmode", "2");
+		//DispatchKeyValue(m_iDogTag, "massScale", "1.0");
+		DispatchKeyValue(m_iDogTag, "targetname", targetname);
+
+		
+		SetEntProp(m_iDogTag, Prop_Send, "m_usSolidFlags", 136);  //8 was default 
+		SetEntProp(m_iDogTag, Prop_Send, "m_CollisionGroup", 11); //1 was default
+		DispatchKeyValueVector(m_iDogTag, "Origin", deathorigin);
+		DispatchSpawn(m_iDogTag);
+
+		SDKHook(m_iDogTag, SDKHook_StartTouch, OnDogTagTouched);
+
+		
+		new m_iRotator = CreateEntityByName("func_rotating");
+		DispatchKeyValueVector(m_iRotator, "Origin", deathorigin);
+		DispatchKeyValue(m_iRotator, "targetname", targetname);
+		DispatchKeyValue(m_iRotator, "maxspeed", "100"); //100 is good!
+		DispatchKeyValue(m_iRotator, "friction", "0");
+		DispatchKeyValue(m_iRotator, "dmg", "0");
+		DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
+		DispatchKeyValue(m_iRotator, "spawnflags", "64");  //64 default
+		DispatchSpawn(m_iRotator);
+		
+		SetVariantString("!activator");
+		AcceptEntityInput(m_iDogTag, "SetParent", m_iRotator, m_iRotator);
+		AcceptEntityInput(m_iRotator, "Start");
+
+		SetEntPropEnt(m_iDogTag, Prop_Send, "m_hEffectEntity", m_iRotator);
+		
+	}	
+	return Plugin_Handled;
+}
+
+public Action:OnDogTagTouched(propi, client)
+{
+	if(client > 0 && client <= GetMaxClients() && propi > 0 && !IsFakeClient(client) && IsValidEntity(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(propi))
+	{
+
+		new m_iRotator = GetEntPropEnt(propi, Prop_Send, "m_hEffectEntity");
+		if(m_iRotator && IsValidEdict(m_iRotator))
+		AcceptEntityInput(m_iRotator, "Kill");  			// need to kill the func_rotating first otherwise the origin coordinates will be 0,0,0 (local coordinates versus global?)
+		new Float:coords_KilledEnt[3];
+		GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+	
+		EmitSoundToAll(g_AmmoPickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
+	
+		#if DEBUG > 1
+		PrintToChatAll("Picked up dogtag nsf");		
+		#endif
+
+		CreateTimer(0.0, RemoveEntity, propi);
+		//AcceptEntityInput(propi, "kill");
+	
+		grenade_coords_cursor++;
+		return Plugin_Handled;
+	}
+	#if DEBUG > 1
+	PrintToChatAll("skipped prop = %i", propi);
+	#endif
+	
+	return Plugin_Handled;
+}
+
 
 public OnPlayerSpawn(Handle:event,const String:name[],bool:dontBroadcast)
 {
@@ -563,70 +647,73 @@ public OnPlayerSpawn(Handle:event,const String:name[],bool:dontBroadcast)
 
 			CreateTimer(GetConVarFloat(convar_nt_tdm_spawnprotect), timer_PlayerProtect, client);
 			
-			if(g_RandomPlayerSpawns == true)
+			if(g_kvfilefound)
 			{
-				if(g_PlayerCoordsKeyPresent == true)  //if map name is found in the keyvalue file of the same name
+				if(g_RandomPlayerSpawns == true)
 				{
-
-				//randomint = GenerateRandomInt();  			//RANDOM COORDINATES GO!
-				randomint = UTIL_GetRandomInt(0, lines -1);
-				
-				#if DEBUG > 1
-				PrintToServer("1st Randomint: %i", randomint);
-				#endif 
-				
-				//if(randomint == randomint_allowing_array)
-				
-				do
-				{
-					if((randomint == randomint_prev) || randomint_allowing_array[randomint] != 0) //checking if not the same number rolled right before AND if the number is allowed now (=1)
+					if(g_PlayerCoordsKeyPresent == true)  //if map name is found in the keyvalue file of the same name
 					{
+
+					//randomint = GenerateRandomInt();  			//RANDOM COORDINATES GO!
+					randomint = UTIL_GetRandomInt(0, lines -1);
+					
+					#if DEBUG > 1
+					PrintToServer("1st Randomint: %i", randomint);
+					#endif 
+					
+					//if(randomint == randomint_allowing_array)
+					
+					do
+					{
+						if((randomint == randomint_prev) || randomint_allowing_array[randomint] != 0) //checking if not the same number rolled right before AND if the number is allowed now (=1)
+						{
+							//randomint = GenerateRandomInt();
+							randomint = UTIL_GetRandomInt(0, lines -1);
+							
+							#if DEBUG > 1
+							PrintToServer("2nd Randomint: %i", randomint);
+							#endif
+						}
+						randomint_prev = randomint;  //storing current randomint 
+						
 						//randomint = GenerateRandomInt();
 						randomint = UTIL_GetRandomInt(0, lines -1);
 						
 						#if DEBUG > 1
-						PrintToServer("2nd Randomint: %i", randomint);
+						PrintToServer("3rd Randomint: %i", randomint);
 						#endif
-					}
-					randomint_prev = randomint;  //storing current randomint 
-					
-					//randomint = GenerateRandomInt();
-					randomint = UTIL_GetRandomInt(0, lines -1);
+						
+					}while(randomint_allowing_array[randomint] != 0);
 					
 					#if DEBUG > 1
-					PrintToServer("3rd Randomint: %i", randomint);
+					PrintToServer("Final Randomint: %i", randomint);
 					#endif
 					
-				}while(randomint_allowing_array[randomint] != 0);
-				
-				#if DEBUG > 1
-				PrintToServer("Final Randomint: %i", randomint);
-				#endif
-				
-				//new randomint = GetRandomInt(0, lines -1);
-				//new String:randomvaluenumber[4] = IntToString(randomint, randomvaluenumber, sizeof(randomvaluenumber));
-		
-				new Float:NewOrigin[3];
-				new Float:NewAngles[3];
-				NewOrigin[0] = coordinates_array[randomint][0];
-				NewOrigin[1] = coordinates_array[randomint][1];
-				NewOrigin[2] = coordinates_array[randomint][2];
-				NewAngles[0] = angles_array[randomint][0];
-				NewAngles[1] = angles_array[randomint][1];
-				NewAngles[2] = angles_array[randomint][2];
-				
-				DispatchKeyValueVector(client, "Origin", NewOrigin);
-				DispatchKeyValueVector(client, "Angles", NewAngles);
-				
-				
-				WriteNumberHistory(randomint);
-				
-				CreateTimer(12.0, ClearLock);  // Clears lock after 12 seconds for this set of spawn coordinates
+					//new randomint = GetRandomInt(0, lines -1);
+					//new String:randomvaluenumber[4] = IntToString(randomint, randomvaluenumber, sizeof(randomvaluenumber));
+			
+					new Float:NewOrigin[3];
+					new Float:NewAngles[3];
+					NewOrigin[0] = coordinates_array[randomint][0];
+					NewOrigin[1] = coordinates_array[randomint][1];
+					NewOrigin[2] = coordinates_array[randomint][2];
+					NewAngles[0] = angles_array[randomint][0];
+					NewAngles[1] = angles_array[randomint][1];
+					NewAngles[2] = angles_array[randomint][2];
+					
+					DispatchKeyValueVector(client, "Origin", NewOrigin);
+					DispatchKeyValueVector(client, "Angles", NewAngles);
+					
+					
+					WriteNumberHistory(randomint);
+					
+					CreateTimer(12.0, ClearLock);  // Clears lock after 12 seconds for this set of spawn coordinates
 
-				#if DEBUG > 1
-				PrintToServer("SPAWNING: randomint=%d, randomint_allowing_array=%d origin %f %f %f coordsarray: %f %f %f", randomint, randomint_allowing_array[randomint], NewOrigin[0], NewOrigin[1], NewOrigin[2], coordinates_array[randomint][0], coordinates_array[randomint][1], coordinates_array[randomint][2]);
-				PrintToServer("------");
-				#endif
+					#if DEBUG > 1
+					PrintToServer("SPAWNING: randomint=%d, randomint_allowing_array=%d origin %f %f %f coordsarray: %f %f %f", randomint, randomint_allowing_array[randomint], NewOrigin[0], NewOrigin[1], NewOrigin[2], coordinates_array[randomint][0], coordinates_array[randomint][1], coordinates_array[randomint][2]);
+					PrintToServer("------");
+					#endif
+					}
 				}
 			}
 		}
@@ -718,7 +805,7 @@ UTIL_ArrayIntRand(array[], size)
     }
 }
 
-void InitArray()
+InitArray()
 {
 	decl String:CurrentMap[64];
 	GetCurrentMap(CurrentMap, 64);		
@@ -730,186 +817,191 @@ void InitArray()
 	static String:file[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, file, sizeof(file), "configs/%s.txt", CurrentMap);
 	new Handle:kv = CreateKeyValues("Coordinates");
-	do
+	
+	if(FileToKeyValues(kv, file))
 	{
-		if(!FileToKeyValues(kv, file))
-		{
-			PrintToServer("%s.txt not found!", CurrentMap);
-			break;
-		}
-		if(!KvJumpToKey(kv, "player coordinates"))
-		{
-			PrintToServer("player coordinates key was not found in the keyvalues file!");
-			g_PlayerCoordsKeyPresent = false;
-			break;
-		}
-		else{ g_PlayerCoordsKeyPresent = true; }
-
-		if(!KvGotoFirstSubKey(kv))  //we place ourselves at the first entry
-		{
-			PrintToServer("Error finding first subkey for entry %s", CurrentMap);
-			break;
-		}
-		/*
-		int count;
-		for(count = 0; (count <= 100 ) && (KvGotoNextKey(kv)); count++)  //ok I'm dumb, this is redundant -glub
-		{
-			continue;    
-		}
-		
-		KvRewind(kv);
-		KvJumpToKey(kv, CurrentMap);
-		KvGotoFirstSubKey(kv);
-		lines = count + 1;
-		*/
-		
-		int i;
 		do
 		{
-			if(i >= lines)
+			if(!FileToKeyValues(kv, file))
+			{
+				PrintToServer("%s.txt was not found! No custom spawns!", CurrentMap);
+				g_kvfilefound = false;
 				break;
-		
-			KvGetVector(kv, "coordinates", coordinates_array[i]);
-			KvGetVector(kv, "angles", angles_array[i]); 
+			}
 			
-			#if DEBUG > 1
-			PrintToServer("%d: %f, %f, %f; %f, %f, %f", i, coordinates_array[i][0], coordinates_array[i][1], coordinates_array[i][2], angles_array[i][0], angles_array[i][1], angles_array[i][2]);
+			if(!KvJumpToKey(kv, "player coordinates"))
+			{
+				PrintToServer("[TDM] player coordinates key was not found in the keyvalues file!");
+				g_PlayerCoordsKeyPresent = false;
+				break;
+			}else{ g_PlayerCoordsKeyPresent = true; }
+
+			if(!KvGotoFirstSubKey(kv))  //we place ourselves at the first entry
+			{
+				PrintToServer("Error finding first subkey for entry %s", CurrentMap);
+				break;
+			}
+			/*
+			int count;
+			for(count = 0; (count <= 100 ) && (KvGotoNextKey(kv)); count++)  //ok I'm dumb, this is redundant -glub
+			{
+				continue;    
+			}
+			
+			KvRewind(kv);
+			KvJumpToKey(kv, CurrentMap);
+			KvGotoFirstSubKey(kv);
+			lines = count + 1;
+			*/
+			
+			int i;
+			do
+			{
+				if(i >= lines)
+					break;
+			
+				KvGetVector(kv, "coordinates", coordinates_array[i]);
+				KvGetVector(kv, "angles", angles_array[i]); 
+				
+				#if DEBUG > 1
+				PrintToServer("%d: %f, %f, %f; %f, %f, %f", i, coordinates_array[i][0], coordinates_array[i][1], coordinates_array[i][2], angles_array[i][0], angles_array[i][1], angles_array[i][2]);
+				#endif
+				
+				i++;
+			} while (KvGotoNextKey(kv));
+			lines = i;
+			
+			#if DEBUG >= 1
+			PrintToServer("lines : %d", lines);
 			#endif
 			
-			i++;
-		} while (KvGotoNextKey(kv));
-		lines = i;
-		
-		#if DEBUG >= 1
-		PrintToServer("lines : %d", lines);
-		#endif
-		
-		KvRewind(kv);  //going back to top of kv
-		
-		
-		
-		if(!KvJumpToKey(kv, "Ammopacks"))
-		{
-			PrintToServer("Ammopacks coordinates key was not found in the keyvalues file!");
-			g_AmmoPackKeyPresent = false;
-			break;
-		}
-		else{ g_AmmoPackKeyPresent = true; }
-
-		if(!KvGotoFirstSubKey(kv)) 
-		{
-			PrintToServer("Error finding first subkey for entry in Ammopacks. Assuming we don't want any.");
-			g_AmmoPackCoordsPresent = false;
-			break;
-		}
-		else{ g_AmmoPackCoordsPresent = true; }
-		
-		i = 0;
-		do
-		{
-			if(i >= ammolines)
-				break;
-		
-			KvGetVector(kv, "coordinates", ammocoords_array[i]);
-			KvGetVector(kv, "angles", ammoangles_array[i]); 
+			KvRewind(kv);  //going back to top of kv
 			
-			#if DEBUG > 1
-			PrintToServer("Ammo %d: %f, %f, %f; %f, %f, %f", i, ammocoords_array[i][0], ammocoords_array[i][1], ammocoords_array[i][2], ammoangles_array[i][0], ammoangles_array[i][1], ammoangles_array[i][2]);
+			
+			
+			if(!KvJumpToKey(kv, "Ammopacks"))
+			{
+				PrintToServer("Ammopacks coordinates key was not found in the keyvalues file!");
+				g_AmmoPackKeyPresent = false;
+				break;
+			}
+			else{ g_AmmoPackKeyPresent = true; }
+
+			if(!KvGotoFirstSubKey(kv)) 
+			{
+				PrintToServer("Error finding first subkey for entry in Ammopacks. Assuming we don't want any.");
+				g_AmmoPackCoordsPresent = false;
+				break;
+			}
+			else{ g_AmmoPackCoordsPresent = true; }
+			
+			i = 0;
+			do
+			{
+				if(i >= ammolines)
+					break;
+			
+				KvGetVector(kv, "coordinates", ammocoords_array[i]);
+				KvGetVector(kv, "angles", ammoangles_array[i]); 
+				
+				#if DEBUG > 1
+				PrintToServer("Ammo %d: %f, %f, %f; %f, %f, %f", i, ammocoords_array[i][0], ammocoords_array[i][1], ammocoords_array[i][2], ammoangles_array[i][0], ammoangles_array[i][1], ammoangles_array[i][2]);
+				#endif
+				
+				i++;
+			} while (KvGotoNextKey(kv));
+			ammolines = i; //number of ammo subkeys counted
+			
+			#if DEBUG >= 1
+			PrintToServer("ammolines : %d", ammolines);
 			#endif
 			
-			i++;
-		} while (KvGotoNextKey(kv));
-		ammolines = i; //number of ammo subkeys counted
-		
-		#if DEBUG >= 1
-		PrintToServer("ammolines : %d", ammolines);
-		#endif
-		
-		KvRewind(kv);  //going back to top of kv again
+			KvRewind(kv);  //going back to top of kv again
 
-		
-		
-		if(!KvJumpToKey(kv, "Grenadepacks"))
-		{
-			PrintToServer("Grenadepacks coordinates key was not found in the keyvalues file!");
-			g_GrenadePacksKeyPresent = false;
-			break;
-		}
-		else{ g_GrenadePacksKeyPresent = true; }
-
-		if(!KvGotoFirstSubKey(kv)) 
-		{
-			PrintToServer("Error finding first subkey for coordinates entry in Grenadepacks. Assuming we don't want any.");
-			g_GrenadePacksCoordsPresent = false;
-			break;
-		}
-		else{ g_GrenadePacksCoordsPresent = true; }
-		
-		i = 0;
-		do
-		{
-			if(i >= grenadelines)
+			
+			
+			if(!KvJumpToKey(kv, "Grenadepacks"))
+			{
+				PrintToServer("Grenadepacks coordinates key was not found in the keyvalues file!");
+				g_GrenadePacksKeyPresent = false;
 				break;
-		
-			KvGetVector(kv, "coordinates", grenadecoords_array[i]);
-			KvGetVector(kv, "angles", grenadeangles_array[i]); 
-			
-			#if DEBUG > 1
-			PrintToServer("Grenade %d: %f, %f, %f; %f, %f, %f", i, grenadecoords_array[i][0], grenadecoords_array[i][1], grenadecoords_array[i][2], grenadecoords_array[i][0], grenadecoords_array[i][1], grenadecoords_array[i][2]);
-			#endif
-			
-			i++;
-		} while (KvGotoNextKey(kv));
-		grenadelines = i; //number of grenadepack subkeys counted
-		
-		#if DEBUG >= 1
-		PrintToServer("grenadelines : %d", grenadelines);
-		#endif
+			}
+			else{ g_GrenadePacksKeyPresent = true; }
 
-
-		KvRewind(kv);  //going back to top of kv one last time
-
-		
-		
-		if(!KvJumpToKey(kv, "Ladders"))
-		{
-			PrintToServer("Ladders key was not found in the keyvalues file!");
-			g_LaddersKeyPresent = false;
-			break;
-		}
-		else{ g_LaddersKeyPresent = true; }
-
-		if(!KvGotoFirstSubKey(kv)) 
-		{
-			PrintToServer("Error finding first subkey for coordinates entry in Ladders. Assuming we don't want any.");
-			g_LaddersCoordsPresent = false;
-			break;
-		}
-		else{ g_LaddersCoordsPresent = true; }
-		
-		i = 0;
-		do
-		{
-			if(i >= ladderlines)
+			if(!KvGotoFirstSubKey(kv)) 
+			{
+				PrintToServer("Error finding first subkey for coordinates entry in Grenadepacks. Assuming we don't want any.");
+				g_GrenadePacksCoordsPresent = false;
 				break;
-		
-			KvGetVector(kv, "coordinates", laddercoords_array[i]);
-			KvGetVector(kv, "angles", ladderangles_array[i]); 
+			}
+			else{ g_GrenadePacksCoordsPresent = true; }
 			
-			#if DEBUG > 1
-			PrintToServer("Ladder %d: %f, %f, %f; %f, %f, %f", i, laddercoords_array[i][0], laddercoords_array[i][1], laddercoords_array[i][2], ladderangles_array[i][0], ladderangles_array[i][1], ladderangles_array[i][2]);
+			i = 0;
+			do
+			{
+				if(i >= grenadelines)
+					break;
+			
+				KvGetVector(kv, "coordinates", grenadecoords_array[i]);
+				KvGetVector(kv, "angles", grenadeangles_array[i]); 
+				
+				#if DEBUG > 1
+				PrintToServer("Grenade %d: %f, %f, %f; %f, %f, %f", i, grenadecoords_array[i][0], grenadecoords_array[i][1], grenadecoords_array[i][2], grenadecoords_array[i][0], grenadecoords_array[i][1], grenadecoords_array[i][2]);
+				#endif
+				
+				i++;
+			} while (KvGotoNextKey(kv));
+			grenadelines = i; //number of grenadepack subkeys counted
+			
+			#if DEBUG >= 1
+			PrintToServer("grenadelines : %d", grenadelines);
 			#endif
+
+
+			KvRewind(kv);  //going back to top of kv one last time
+
 			
-			i++;
-		} while (KvGotoNextKey(kv));
-		ladderlines = i; //number of ladder subkeys counted
-		#if DEBUG >= 1
-		PrintToServer("ladderlines : %d", ladderlines);
-		#endif		
-		
-		
-	} while (false);
-	CloseHandle(kv);
+			
+			if(!KvJumpToKey(kv, "Ladders"))
+			{
+				PrintToServer("Ladders key was not found in the keyvalues file!");
+				g_LaddersKeyPresent = false;
+				break;
+			}
+			else{ g_LaddersKeyPresent = true; }
+
+			if(!KvGotoFirstSubKey(kv)) 
+			{
+				PrintToServer("Error finding first subkey for coordinates entry in Ladders. Assuming we don't want any.");
+				g_LaddersCoordsPresent = false;
+				break;
+			}
+			else{ g_LaddersCoordsPresent = true; }
+			
+			i = 0;
+			do
+			{
+				if(i >= ladderlines)
+					break;
+			
+				KvGetVector(kv, "coordinates", laddercoords_array[i]);
+				KvGetVector(kv, "angles", ladderangles_array[i]); 
+				
+				#if DEBUG > 1
+				PrintToServer("Ladder %d: %f, %f, %f; %f, %f, %f", i, laddercoords_array[i][0], laddercoords_array[i][1], laddercoords_array[i][2], ladderangles_array[i][0], ladderangles_array[i][1], ladderangles_array[i][2]);
+				#endif
+				
+				i++;
+			} while (KvGotoNextKey(kv));
+			ladderlines = i; //number of ladder subkeys counted
+			#if DEBUG >= 1
+			PrintToServer("ladderlines : %d", ladderlines);
+			#endif		
+			
+			
+		} while (false);
+		CloseHandle(kv);
+	}
 }
 
 
@@ -1124,7 +1216,7 @@ stock ReSpawnAmmo(Float:position[3], const String:model[])
 		new m_iRotator = CreateEntityByName("func_rotating");
 		DispatchKeyValueVector(m_iRotator, "Origin", position);
 		DispatchKeyValue(m_iRotator, "targetname", targetname);
-		DispatchKeyValue(m_iRotator, "maxspeed", "100");
+		DispatchKeyValue(m_iRotator, "maxspeed", "100"); //100 is good!
 		DispatchKeyValue(m_iRotator, "friction", "0");
 		DispatchKeyValue(m_iRotator, "dmg", "0");
 		DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
