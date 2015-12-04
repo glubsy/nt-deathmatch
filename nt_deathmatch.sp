@@ -1,6 +1,6 @@
 /**************************************************************
 --------------------------------------------------------------
- NEOTOKYOРDeathmatch
+ NEOTOKYOｰ Deathmatch
 
  Plugin licensed under the GPLv3
  
@@ -29,48 +29,65 @@ Changelog
 		*Added grenade packs spawns -glub
 	0.1.5
 		*Added ladder spawns -glub
-		TODO: clear unused detapacks after a while with timer (check for no ownership)
-		TODO: respawn props on round restart (in case someone does neo_restart_this)
+	0.1.6
+		*Added dogtags / Kill Confirmed game mode -glub
+	0.1.7
+		*Added votes -glub
+		
+		TODO:	fix grenades not always picked up
+		TODO:	fix weapon crates not respawning after some occurences
+		TODO:	clear unused detapacks after a while with timer (check for no ownership)
+		TODO:	respawn props on round restart (in case someone does neo_restart_this)
+		TODO:	rendermode for spawn protected players (transparency?)
+		TODO:	parse an autostart file containing a selection of maps (fopen() + StrContains())
+				instead of hardcoding them (must parse it first).
+		TODO:	physics props for dogtags, facing top on z axis always (in progress) 
 		
 **************************************************************/
 #pragma semicolon 1
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
-#define PLUGIN_VERSION	"0.1.5"
+#include <adminmenu>
+#define MAXENTITIES 2048
+#define PLUGIN_VERSION	"0.1.7"
+#include "nt_votes.sp"
 
-//#define DEBUG 0
-//#define DEBUG 1
-//#define DEBUG 2
-#define DEBUG 2
+#define DEBUG 0 //1 or 2
 
 
 public Plugin:myinfo =
 {
     name = "NEOTOKYO Team Deathmatch",
-    author = "Agiel then glub",
-    description = "Neotokyo team deathmatch",
+    author = "glub, based on Agiel's",
+    description = "Neotokyo team deathmatch and other sub-modes",
     version = PLUGIN_VERSION,
-    url = "https://github.com/Agiel/nt-deathmatch"
+    url = "https://github.com/glubsy/nt-deathmatch"
 };
-
 //new Handle:convar_nt_tdm_version = INVALID_HANDLE;
 new Handle:convar_nt_tdm_enabled = INVALID_HANDLE;
-new Handle:convar_nt_tdm_kf_enabled = INVALID_HANDLE;
+ConVar convar_nt_tdm_kf_enabled; 
 new Handle:convar_nt_tdm_timelimit = INVALID_HANDLE;
 new Handle:convar_nt_tdm_spawnprotect = INVALID_HANDLE;
 new Handle:convar_nt_tdm_randomplayerspawns = INVALID_HANDLE;
 new Handle:convar_nt_tdm_ammo_respawn_time = INVALID_HANDLE;
 new Handle:convar_nt_tdm_grenade_respawn_time = INVALID_HANDLE;
-new Float:g_AmmoRespawnTime;
-new Float:g_GrenadeRespawnTime;
+new Handle:convar_nt_dogtag_remove_timer = INVALID_HANDLE;
+ConVar convar_nt_tdm_kf_hardcore_enabled;
 
 new bool:g_DMStarted = false;
+new bool:g_KF_enabled = false;
+new bool:g_KF_Hardcore_enabled = false;
+
+new Float:g_AmmoRespawnTime;
+new Float:g_GrenadeRespawnTime;
+new Float:g_DogTagRemoveTime;
 
 new clientProtected[MAXPLAYERS+1];
 new clientHP[MAXPLAYERS+1];
 
-	
+new Handle:DogTagDropTimer[MAXENTITIES+1] = INVALID_HANDLE;
+
 new Float:coordinates_array[100][3];  //initializing big array of floats for coordinates
 new Float:angles_array[100][3];	
 new bool:g_kvfilefound = false;
@@ -94,9 +111,12 @@ new bool:g_AmmoPackCoordsPresent = false;
 new Float:ammocoords_array[60][3];  //60 is hard coded 30 max possible ammo pack locations, might have to change that
 new Float:ammoangles_array[60][3];
 new ammo_coords_cursor;
-new const String:g_AmmoPackModel[] = "models/logo/jinrai_logo.mdl"; //"models/items/boxsrounds.mdl"
+new const String:g_AmmoPackModel[] = "models/items/boxsrounds.mdl";
+new const String:g_AmmoPickupSound[] = "items/ammo_pickup.wav";
 
-new gOffsetMyWeapons, gOffsetAmmo;
+
+new gOffsetMyWeapons;
+//new gOffsetAmmo;
 
 int grenadelines = 200;
 new bool:g_GrenadePacksKeyPresent = false;
@@ -105,6 +125,7 @@ new Float:grenadecoords_array[60][3];
 new Float:grenadeangles_array[60][3];
 new grenade_coords_cursor;
 new const String:g_GrenadePackModel[] = "models/items/boxmrounds.mdl";
+new const String:g_GrenadePickupSound[] = "common/wpn_moveselect.wav";
 
 new grenadeprop[30];
 
@@ -114,15 +135,20 @@ new bool:g_LaddersKeyPresent = false;
 new bool:g_LaddersCoordsPresent = false;
 new Float:laddercoords_array[60][3];
 new Float:ladderangles_array[60][3];
-new const String:g_LadderModel[] = "models/ladder/ladder3.mdl";
+new const String:g_LadderModel[] = "models/ladder/ladder4.mdl";
 
-new const String:g_AmmoPickupSound[] = "items/ammo_pickup.wav";
+
 
 //new bool:bUp = true;
 //new bool:b_movestart = false;
 
 new const String:g_DogTagModelNSF[] = "models/logo/nsf_logo.mdl";
 new const String:g_DogTagModelJINRAI[] = "models/logo/jinrai_logo.mdl";
+new const String:g_DogTagModelNSFphysics[] = "models/logo/nsf_logo2.mdl";
+new const String:g_DogTagModelJINRAIphysics[] = "models/logo/jinrai_logo2.mdl";
+
+new const String:g_DogTagPickupSound[] = "common/warning.wav";
+new const String:g_DogTagPickupSoundDenied[] = "buttons/combine_button5.wav";
 
 /*
 new const String:gSpawnSounds[][] =
@@ -131,17 +157,40 @@ new const String:gSpawnSounds[][] =
 };
 */
 
+new const String:g_ConflictingPlugins[][] = 
+{
+	"nt_ghostcap.smx",
+	"nt_assist.smx",
+	"nt_competitive.smx",
+	"nt_autosquad.smx"
+};
+
+
+
 public OnPluginStart()
 {
-	//convar_nt_tdm_version = CreateConVar("sm_nt_tdm_version", PLUGIN_VERSION, "NEOTOKYO Deathmatch.", FCVAR_PLUGIN | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
-	convar_nt_tdm_enabled = CreateConVar("sm_nt_tdm_enabled", "0", "Enables or Disables deathmatch.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	convar_nt_tdm_timelimit = CreateConVar("sm_nt_tdm_timelimit", "20", "Sets deathmatch timelimit.", FCVAR_PLUGIN, true, 0.0, true, 60.0);
-	convar_nt_tdm_spawnprotect = CreateConVar("sm_nt_tdm_spawnprotect", "5.0", "Length of time to protect spawned players", FCVAR_PLUGIN, true, 0.0, true, 30.0);
-	convar_nt_tdm_randomplayerspawns = CreateConVar("sm_nt_tdm_randomplayerspawns", "1", "Activates or deactivates random spawns from keyvalue file", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	convar_nt_tdm_kf_enabled = CreateConVar("sm_nt_tdm_kf_enabled", "0", "Enables or Disables Kill Confirmed.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	convar_nt_tdm_ammo_respawn_time = CreateConVar("sm_nt_tdm_ammo_respawn_time", "45.0", "Time in seconds before an ammo pack will respawn", FCVAR_PLUGIN);
-	convar_nt_tdm_grenade_respawn_time = CreateConVar("sm_nt_tdm_grenade_respawn_time", "60.0", "Time in seconds before a grenade pack will respawn", FCVAR_PLUGIN);
+	//convar_nt_tdm_version = CreateConVar("nt_tdm_version", PLUGIN_VERSION, "NEOTOKYO Team Deathmatch.", FCVAR_PLUGIN | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
+	convar_nt_tdm_enabled = CreateConVar("nt_tdm_enabled", "0", "Enables or Disables team deathmatch.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	convar_nt_tdm_timelimit = CreateConVar("nt_tdm_timelimit", "20", "Sets team deathmatch timelimit.", FCVAR_PLUGIN, true, 0.0, true, 60.0);
+	convar_nt_tdm_spawnprotect = CreateConVar("nt_tdm_spawnprotect", "5.0", "Length of time to protect spawned players", FCVAR_PLUGIN, true, 0.0, true, 30.0);
+	convar_nt_tdm_randomplayerspawns = CreateConVar("nt_tdm_randomplayerspawns", "1", "Activates or deactivates random spawns from keyvalue file", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	convar_nt_tdm_kf_enabled = CreateConVar("nt_tdm_kf_enabled", "0", "Enables or Disables Kill Confirmed.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	convar_nt_tdm_kf_hardcore_enabled = CreateConVar("nt_tdm_kf_hardcore_enabled", "0", "Enables or Disables gaining points ONLY by pickup up dogtags.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	convar_nt_tdm_ammo_respawn_time = CreateConVar("nt_tdm_ammo_respawn_time", "45.0", "Time in seconds before an ammo pack will respawn", FCVAR_PLUGIN);
+	convar_nt_tdm_grenade_respawn_time = CreateConVar("nt_tdm_grenade_respawn_time", "60.0", "Time in seconds before a grenade pack will respawn", FCVAR_PLUGIN);
+	convar_nt_dogtag_remove_timer = CreateConVar("nt_dogtag_remove_time", "30.0", "Time in seconds before a dogtag disappears", FCVAR_PLUGIN);
+
+	//vote initialization 
+	InitVoteCvars();
+	
 	AutoExecConfig(true);
+	
+	RegAdminCmd("sm_tdm_enable", Command_TDM_Enable, ADMFLAG_KICK, "Enables or disables team deathmatch game mode.");
+	RegAdminCmd("sm_kf_enable", Command_KF_Enable, ADMFLAG_KICK, "Enables or disables Kill Confirmed game mode.");
+	RegAdminCmd("sm_randomplayerspawns", Command_Randomplayerspawns, ADMFLAG_KICK, "Enables or disables random player spawns.");
+	RegAdminCmd("sm_tdm_timelimit", Command_TDM_Timelimit, ADMFLAG_KICK, "Sets team deathmatch timelimit.");
+	RegAdminCmd("sm_kf_hardcore_enable", Command_KF_Hardcore_Enable, ADMFLAG_KICK, "Enables or disables gaining points ONLY by pickup up dogtags.");
+	
 	
 	#if DEBUG > 1
 	RegAdminCmd("sm_forcestartdm", CommandRestartDeatchmatch, ADMFLAG_SLAY, "forces deathmatch-debug command for testing");
@@ -158,6 +207,11 @@ public OnPluginStart()
 	HookConVarChange(convar_nt_tdm_randomplayerspawns, OnChangePlayerRandomSpawnsCvar);
 	HookConVarChange(convar_nt_tdm_ammo_respawn_time, OnChangeAmmoRespawnTimeCvar);
 	HookConVarChange(convar_nt_tdm_grenade_respawn_time, OnChangeGrenadeRespawnTimeCvar);
+	HookConVarChange(convar_nt_tdm_kf_enabled, OnChangeKFEnabledCvar);
+	HookConVarChange(convar_nt_tdm_kf_hardcore_enabled, OnChangeKF_Hardcore_EnabledCvar);
+	HookConVarChange(convar_nt_dogtag_remove_timer, OnChangeDogTagTimer);
+	
+	
 	
 	HookEvent("player_spawn", OnPlayerSpawn);
 	HookEvent("player_hurt", OnPlayerHurt);
@@ -166,7 +220,7 @@ public OnPluginStart()
 	
 	// Get offsets
 	gOffsetMyWeapons = FindSendPropInfo("CBasePlayer", "m_hMyWeapons");
-	gOffsetAmmo = FindSendPropInfo("CBasePlayer", "m_iAmmo");
+	//gOffsetAmmo = FindSendPropInfo("CBasePlayer", "m_iAmmo");
 	
 /*	for(new snd = 0; snd < sizeof(gSpawnSounds); snd++)
 	PrecacheSound(gSpawnSounds[snd]);    //precaching sound effect for spawn*/
@@ -175,20 +229,46 @@ public OnPluginStart()
 	SetRandomSeed(RoundToFloor(GetEngineTime()));
 	
 	//Adding custom models to forced download
-	AddFileToDownloadsTable("models/ladder/ladder3.mdl");
-	AddFileToDownloadsTable("models/ladder/ladder3.dx80.vtx");
-	AddFileToDownloadsTable("models/ladder/ladder3.dx90.vtx");
-	AddFileToDownloadsTable("models/ladder/ladder3.phy");
-	AddFileToDownloadsTable("models/ladder/ladder3.sw.vtx");
-	AddFileToDownloadsTable("models/ladder/ladder3.vvd");
-	AddFileToDownloadsTable("models/ladder/ladder3.xbox.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.mdl");
+	AddFileToDownloadsTable("models/ladder/ladder4.dx80.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.dx90.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.phy");
+	AddFileToDownloadsTable("models/ladder/ladder4.sw.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.vvd");
+	AddFileToDownloadsTable("models/ladder/ladder4.xbox.vtx");
+	AddFileToDownloadsTable("materials/models/ladder/ladder4.vmt");
+	AddFileToDownloadsTable("materials/models/ladder/ladder4.vtf");
 	
+	AddFileToDownloadsTable("models/logo/jinrai_logo.mdl");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.dx80.vtx");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.dx90.vtx");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.phy");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.sw.vtx");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.vvd");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.xbox.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.mdl");
+	AddFileToDownloadsTable("models/logo/nsf_logo.dx80.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.dx90.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.phy");
+	AddFileToDownloadsTable("models/logo/nsf_logo.sw.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.vvd");
+	AddFileToDownloadsTable("models/logo/nsf_logo.xbox.vtx");
+	AddFileToDownloadsTable("materials/models/logo/jinrai_logo.vmt");
+	AddFileToDownloadsTable("materials/models/logo/nsf_logo.vmt");
+
 	//Precaching models
 	PrecacheModel(g_LadderModel, true);
 	PrecacheModel(g_GrenadePackModel, true);
 	PrecacheModel(g_AmmoPackModel, true);
+	PrecacheModel(g_DogTagModelNSF, true);
+	PrecacheModel(g_DogTagModelJINRAI, true);
+	//Precaching sounds
 	PrecacheSound(g_AmmoPickupSound, true);
+	PrecacheSound(g_GrenadePickupSound, true);
+	PrecacheSound(g_DogTagPickupSound, true);
+	PrecacheSound(g_DogTagPickupSoundDenied, true);
 }
+
 
 public OnConfigsExecuted()
 {
@@ -212,8 +292,21 @@ public OnConfigsExecuted()
 	}
 	g_AmmoRespawnTime = GetConVarFloat(convar_nt_tdm_ammo_respawn_time);
 	g_GrenadeRespawnTime = GetConVarFloat(convar_nt_tdm_grenade_respawn_time);
+	g_DogTagRemoveTime = GetConVarFloat(convar_nt_dogtag_remove_timer);
 	
-	CheckConvarsPrettyPlease();
+	CheckConvarsOnMapLoaded();
+	
+	//Precaching models
+	PrecacheModel(g_LadderModel);
+	PrecacheModel(g_GrenadePackModel);
+	PrecacheModel(g_AmmoPackModel);
+	PrecacheModel(g_DogTagModelNSF);
+	PrecacheModel(g_DogTagModelJINRAI);
+	//Precaching sounds
+	PrecacheSound(g_AmmoPickupSound);
+	PrecacheSound(g_GrenadePickupSound);
+	PrecacheSound(g_DogTagPickupSound);
+	PrecacheSound(g_DogTagPickupSoundDenied);
 }
 
 /*
@@ -227,7 +320,7 @@ public OnAutoConfigsBuffered() {
 		SetConVarInt(convar_nt_tdm_enabled, 0);
 }*/
 
-public CheckConvarsPrettyPlease()
+public CheckConvarsOnMapLoaded()
 {
 	decl String:currentMap[64];
 	GetCurrentMap(currentMap, 64);
@@ -240,36 +333,66 @@ public CheckConvarsPrettyPlease()
 
 public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	if (!GetConVarBool(convar_nt_tdm_enabled))
+	if (!GetConVarBool(convar_nt_tdm_enabled))   // Cvar is set to 0, we are stopping
 	{
 		StopDeathMatch();
 		g_DMStarted = false;
-		PrintToChatAll("Team DeathMatch stopped!");
+		PrintToChatAll("========================================");
+		PrintToChatAll("                  Team DeathMatch ended!");
+		PrintToChatAll("========================================");
 		PrintToServer("Team DeathMatch stopped!");
 		ServerCommand("neo_restart_this 1");
-		ServerCommand("sm plugins load nt_assist");
+
+		ReloadConflictingPlugins();
 		ServerCommand("sm plugins unload disabled/nt_random_healthpack_drop");
-		#if DEBUG > 0
-		PrintToServer("Reloaded nt_assists, unloaded healthpacks drops");
-		#endif
+		SetConVarInt(convar_nt_tdm_kf_enabled, 0); 
+		SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0); 
+
 	}
-	if (GetConVarBool(convar_nt_tdm_enabled))
+	if (GetConVarBool(convar_nt_tdm_enabled))   // Cvar is set to 1, we are starting
 	{
 		StopDeathMatch();
 		
-		CreateTimer(5.0, StartDeatchmatch);   // needs a timer of 5sec to properly start... very weird, I know. -glub
+		CreateTimer(5.0, StartDeatchmatch);   // needs a timer to properly start. Very weird, I know. -glub
 		
 		//g_DMStarted = true;
-		PrintToChatAll("Team DeathMatch started!");
+		PrintToChatAll("========================================");
+		PrintToChatAll("                Team DeathMatch started!");
+		PrintToChatAll("========================================");
 		PrintToServer("Team DeathMatch started!");
 		//GameRules_SetPropFloat("m_fRoundTimeLeft", 10.0);    
 		//GameRules_SetProp("m_iGameState", 1);    // if gamestate change from 0 to 1 and neo_restart_this 1, CTG back to normal, no respawn
 		//ServerCommand("neo_restart_this 1");
-		ServerCommand("sm plugins unload nt_assist");
-		ServerCommand("sm plugins load disabled/nt_random_healthpack_drop");
-		#if DEBUG > 0
-		PrintToServer("Unloaded nt_assists, loaded healthpacks drops");
-		#endif
+		
+		CreateTimer(0.9, UnloadConflictingPlugins);
+		ServerCommand("sm plugins load disabled/nt_random_healthpack_drop"); //loading random healthpack drops
+		
+		SetConVarInt(convar_nt_tdm_kf_enabled, 1); //we start KF enabled by default with TDM for now. FIXME: remove later.
+		//SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 1); //if we want hardcore by default
+	}
+} 
+
+
+public Action:UnloadConflictingPlugins(Handle:timer)
+{
+	for(new i; i < sizeof(g_ConflictingPlugins); i++)
+	{
+		if(FindPluginByFile(g_ConflictingPlugins[i]) != INVALID_HANDLE)
+		{
+			ServerCommand("sm plugins unload %s", g_ConflictingPlugins[i]);
+		}
+	}
+
+}
+
+void ReloadConflictingPlugins()
+{
+	for(new i; i < sizeof(g_ConflictingPlugins); i++)
+	{
+		if(FindPluginByFile(g_ConflictingPlugins[i]) != INVALID_HANDLE)
+		{
+			ServerCommand("sm plugins load %s", g_ConflictingPlugins[i]);
+		}
 	}
 }
 
@@ -279,12 +402,12 @@ public OnChangePlayerRandomSpawnsCvar(Handle:cvar, const String:oldVal[], const 
 	if (GetConVarBool(convar_nt_tdm_randomplayerspawns))
 	{
 		g_RandomPlayerSpawns = true;
-		PrintToChatAll("Random player spawns enabled!");
+		PrintToChatAll("[TDM] Random player spawns enabled!");
 	}
 	if (!GetConVarBool(convar_nt_tdm_randomplayerspawns))
 	{
 		g_RandomPlayerSpawns = false;
-		PrintToChatAll("Random player spawns disabled!");
+		PrintToChatAll("[TDM] Random player spawns disabled!");
 	}
 }
 
@@ -299,6 +422,166 @@ public OnChangeGrenadeRespawnTimeCvar(Handle:cvar, const String:oldVal[], const 
 	g_GrenadeRespawnTime = GetConVarFloat(convar_nt_tdm_grenade_respawn_time);
 }
 
+public OnChangeDogTagTimer(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	g_DogTagRemoveTime = GetConVarFloat(convar_nt_dogtag_remove_timer);
+}
+
+public OnChangeKFEnabledCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	if (GetConVarBool(convar_nt_tdm_kf_enabled))
+	{
+		g_KF_enabled = true;
+		PrintToChatAll("========================================");
+		PrintToChatAll("       Kill Confirmed mode is now enabled!");
+		PrintToChatAll("========================================");
+	}
+	if (!GetConVarBool(convar_nt_tdm_kf_enabled))
+	{
+		g_KF_enabled = false;
+		PrintToChatAll("========================================");
+		PrintToChatAll("       Kill Confirmed mode is now disabled.");
+		PrintToChatAll("========================================");
+	}
+}
+
+public OnChangeKF_Hardcore_EnabledCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
+{
+	if (GetConVarBool(convar_nt_tdm_kf_hardcore_enabled))
+	{
+		g_KF_Hardcore_enabled = true;
+		PrintToChatAll("========================================");
+		PrintToChatAll("       Kill Confirmed HARDCORE mode is now enabled!");
+		PrintToChatAll("========================================");
+	}
+	if (!GetConVarBool(convar_nt_tdm_kf_hardcore_enabled))
+	{
+		g_KF_Hardcore_enabled = false;
+		PrintToChatAll("========================================");
+		PrintToChatAll("       Kill Confirmed HARDCORE mode is now disabled.");
+		PrintToChatAll("========================================");
+	}
+}
+
+
+
+public Action:Command_TDM_Enable(client, args)
+{
+	if (args < 1)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_tdm_enable <1|0>");
+		ReplyToCommand(client, "[SM] sm_tdm_enable is currently %i", GetConVarInt(convar_nt_tdm_enabled));
+		return Plugin_Handled;
+	}
+	else{	
+		decl String:enabled[PLATFORM_MAX_PATH];
+		GetCmdArg(1, enabled, sizeof(enabled));
+		if(StrEqual(enabled, "1"))
+		{
+			SetConVarInt(convar_nt_tdm_enabled, 1);
+			ReplyToCommand(client, "[SM] TDM is now %i", GetConVarInt(convar_nt_tdm_enabled));
+		}
+		else
+		{
+			SetConVarInt(convar_nt_tdm_enabled, 0);
+			ReplyToCommand(client, "[SM] TDM is now %i", GetConVarInt(convar_nt_tdm_enabled));
+		}
+	}
+	return Plugin_Handled;
+}
+
+public Action:Command_KF_Enable(client, args)
+{
+	if (args < 1)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_kf_enable <1|0>");
+		ReplyToCommand(client, "[SM] sm_kf_enable is currently %i", GetConVarInt(convar_nt_tdm_kf_enabled));
+		return Plugin_Handled;
+	}
+	else{	
+		decl String:enabled[PLATFORM_MAX_PATH];
+		GetCmdArg(1, enabled, sizeof(enabled));
+		if(StrEqual(enabled, "1"))
+		{
+			SetConVarInt(convar_nt_tdm_kf_enabled, 1);
+			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kf_enabled));
+		}
+		else
+		{
+			SetConVarInt(convar_nt_tdm_kf_enabled, 0);
+			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kf_enabled));
+		}
+	}
+	return Plugin_Handled;
+}
+
+public Action:Command_KF_Hardcore_Enable(client, args)
+{
+	if (args < 1)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_kf_hardcore_enable <1|0>");
+		ReplyToCommand(client, "[SM] sm_kf_hardcore_enable is currently %i", GetConVarInt(convar_nt_tdm_kf_hardcore_enabled));
+		return Plugin_Handled;
+	}
+	else{	
+		decl String:enabled[PLATFORM_MAX_PATH];
+		GetCmdArg(1, enabled, sizeof(enabled));
+		if(StrEqual(enabled, "1"))
+		{
+			SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 1);
+			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kf_hardcore_enabled));
+		}
+		else
+		{
+			SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0);
+			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kf_hardcore_enabled));
+		}
+	}
+	return Plugin_Handled;
+}
+
+
+
+public Action:Command_Randomplayerspawns(client, args)
+{
+	if (args < 1)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_randomplayerspawns <1|0>");
+		ReplyToCommand(client, "[SM] randomplayerspawns is %i", GetConVarInt(convar_nt_tdm_randomplayerspawns));
+		return Plugin_Handled;
+	}
+	else{
+		decl String:enabled[PLATFORM_MAX_PATH];
+		GetCmdArg(1, enabled, sizeof(enabled));
+		if(StrEqual(enabled, "1"))
+		{
+			SetConVarInt(convar_nt_tdm_randomplayerspawns, 1);
+			ReplyToCommand(client, "[SM] randomplayerspawns is now %i", GetConVarInt(convar_nt_tdm_randomplayerspawns));
+		}
+		else
+		{
+			SetConVarInt(convar_nt_tdm_randomplayerspawns, 0);
+			ReplyToCommand(client, "[SM] randomplayerspawns is now %i", GetConVarInt(convar_nt_tdm_randomplayerspawns));
+		}
+	}
+	return Plugin_Handled;
+}
+
+public Action:Command_TDM_Timelimit(client, args)
+{
+	if (args < 1)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_tdm_timelimit <x.x>");
+		ReplyToCommand(client, "[SM] Current timelimit is set to %f", GetConVarFloat(convar_nt_tdm_timelimit));
+		return Plugin_Handled;
+	}
+	decl String:time[PLATFORM_MAX_PATH];
+	GetCmdArg(1, time, sizeof(time));
+	SetConVarFloat(convar_nt_tdm_timelimit, StringToFloat(time));
+	ReplyToCommand(client, "[SM] Current timelimit is set to %f", GetConVarFloat(convar_nt_tdm_timelimit));
+	return Plugin_Handled;
+} 
+
 
 
 public Action:StartDeatchmatch(Handle:timer)
@@ -307,6 +590,11 @@ public Action:StartDeatchmatch(Handle:timer)
 }
 
 
+/*======================================
+
+		Start of debugging commands
+		
+========================================*/
 #if DEBUG > 1
 public Action:CommandRestartDeatchmatch(client, args)
 {
@@ -393,6 +681,12 @@ public Action:ChangeGameStateProxy(client, args)
 	return Plugin_Handled;
 }
 #endif
+/*======================================
+
+		End of debugging commands
+		
+========================================*/
+
 
 public StartDeathmatch() 
 {
@@ -458,20 +752,22 @@ public StartDeathmatch()
 	GameRules_SetProp("m_iGameState", 1);  
 	
 	
-	if(g_AmmoPackKeyPresent && g_AmmoPackCoordsPresent) //if we have AmmoPacks keyvalues, spawn the first batch
+	if(g_kvfilefound && g_AmmoPackKeyPresent && g_AmmoPackCoordsPresent) //if we have AmmoPacks keyvalues, spawn the first batch
 	{
 		SpawnAmmoPack();
 	}
 	
-	if(g_GrenadePacksKeyPresent && g_GrenadePacksCoordsPresent) //if we have GrenadePacks keyvalues, spawn the first batch
+	if(g_kvfilefound && g_GrenadePacksKeyPresent && g_GrenadePacksCoordsPresent) //if we have GrenadePacks keyvalues, spawn the first batch
 	{
 		SpawnGrenadePack();
 	}
 	
-	if(g_LaddersKeyPresent && g_LaddersCoordsPresent) //if we have Ladder keyvalues, spawn them
+	if(g_kvfilefound && g_LaddersKeyPresent && g_LaddersCoordsPresent) //if we have Ladder keyvalues, spawn them
 	{
 		SpawnLadder();
 	}
+	
+	KillRemainingGhost();
 }
 
 
@@ -538,67 +834,180 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	if (g_DMStarted)
 	{
-		new victim = GetClientOfUserId(GetEventInt(event, "userid"));
-		new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+		if(!g_KF_enabled)
+		{
+			new victim = GetClientOfUserId(GetEventInt(event, "userid"));
+			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 
-		new victimTeam = GetClientTeam(victim);
-		new attackerTeam = GetClientTeam(attacker);   //FIX! error Native "GetClientTeam" reported: Client index 0 is invalid when suiciding with world
+			new victimTeam = GetClientTeam(victim);
+			new attackerTeam = GetClientTeam(attacker);   //FIXME! error Native "GetClientTeam" reported: Client index 0 is invalid when suiciding with world
 
-		new score = 1;
-		if (attackerTeam == victimTeam)
-			score = -1;
+			new score = 1;
+			if (attackerTeam == victimTeam)
+				score = -1;								//FIXME! might be redundant with other plugins, thus doing -2 (probably not that bad)
 
-		SetTeamScore(attackerTeam, GetTeamScore(attackerTeam) + score);
-	}
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	new Float:deathorigin[3];
-	GetClientAbsOrigin(client,deathorigin);
-	//GetEntPropVector(client, Prop_Send, "m_vecOrigin", deathorigin);
+			SetTeamScore(attackerTeam, GetTeamScore(attackerTeam) + score);
+		}
 	
-	SpawnDogTag(deathorigin, g_DogTagModelNSF);
+		if (g_KF_enabled)				//Question: do we give a player point for killing, and a team point for picking up a dogtag?
+		{
+			new victim = GetClientOfUserId(GetEventInt(event, "userid"));
+			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+			new victimTeam = GetClientTeam(victim);
+			new attackerTeam = GetClientTeam(attacker);
+
+			if (attackerTeam == victimTeam)
+			{
+				SetTeamScore(attackerTeam, GetTeamScore(attackerTeam) - 1 ); //FIXME! might be redundant with other plugins, thus doing -2 (probably not that bad)
+			}
+			
+			//removing the kill point for the player in HardCore mode
+			if(g_KF_Hardcore_enabled)
+				SetEntProp(attacker, Prop_Data, "m_iFrags", GetEntProp(attacker, Prop_Data, "m_iFrags") - 1 ); 
+			
+
+			new Float:deathorigin[3];
+			GetClientAbsOrigin(victim,deathorigin);
+			//GetEntPropVector(victim, Prop_Send, "m_vecOrigin", deathorigin);
+			
+			
+			if(victimTeam == 3)  //3 is NSF
+			{
+				SpawnDogTag(deathorigin, g_DogTagModelNSF);
+			}
+			if(victimTeam == 2)  //2 is JINRAI
+			{
+				SpawnDogTag(deathorigin, g_DogTagModelJINRAI);
+			}
+		}
+	}
+	if (!g_DMStarted) 
+	{
+		if (g_KF_enabled)				//if we want KF in CTG for example
+		{
+			new victim = GetClientOfUserId(GetEventInt(event, "userid"));
+			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+			new victimTeam = GetClientTeam(victim);
+			new attackerTeam = GetClientTeam(attacker);
+
+			if (attackerTeam == victimTeam)
+			{
+				SetTeamScore(attackerTeam, GetTeamScore(attackerTeam) - 1 ); //FIXME! might be redundant with other plugins, thus doing -2 (probably not that bad)
+			}
+			
+			//removing the kill point for the player in HardCore mode
+			if(g_KF_Hardcore_enabled)
+				SetEntProp(attacker, Prop_Data, "m_iFrags", GetEntProp(attacker, Prop_Data, "m_iFrags") - 1 ); 
+
+			new Float:deathorigin[3];
+			GetClientAbsOrigin(victim,deathorigin);
+			//GetEntPropVector(victim, Prop_Send, "m_vecOrigin", deathorigin);
+			
+			
+			if(victimTeam == 3)  //3 is NSF
+			{
+				SpawnDogTag(deathorigin, g_DogTagModelNSF);
+			}
+			if(victimTeam == 2)  //2 is JINRAI
+			{
+				SpawnDogTag(deathorigin, g_DogTagModelJINRAI);
+			}
+		}
+	}	
 }
 
 public Action:SpawnDogTag(Float:deathorigin[3], const String:modelname[])
 {
-	decl m_iDogTag;
-
-	if((m_iDogTag = CreateEntityByName("prop_dynamic_override")) != -1)
+	if(StrEqual(modelname, g_DogTagModelNSF) || (StrEqual(modelname, g_DogTagModelJINRAI)))
 	{
-		new String:targetname[100];
+		decl m_iDogTag;
 
-		Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);
+		if((m_iDogTag = CreateEntityByName("prop_dynamic_override")) != -1)
+		{
+			new String:targetname[100];
 
-		DispatchKeyValue(m_iDogTag, "model", modelname);
-		//DispatchKeyValue(m_iDogTag, "physicsmode", "2");
-		//DispatchKeyValue(m_iDogTag, "massScale", "1.0");
-		DispatchKeyValue(m_iDogTag, "targetname", targetname);
+			if(StrEqual(modelname, g_DogTagModelNSF, false))
+			{
+				Format(targetname, sizeof(targetname), "NSFDogTag_%i", m_iDogTag);   //FIXME! probably won't work remove
+			}
+			if(StrEqual(modelname, g_DogTagModelJINRAI, false))
+			{
+				Format(targetname, sizeof(targetname), "JINRAIDogTag_%i", m_iDogTag);
+			}
 
-		
-		SetEntProp(m_iDogTag, Prop_Send, "m_usSolidFlags", 136);  //8 was default 
-		SetEntProp(m_iDogTag, Prop_Send, "m_CollisionGroup", 11); //1 was default
-		DispatchKeyValueVector(m_iDogTag, "Origin", deathorigin);
-		DispatchSpawn(m_iDogTag);
+			DispatchKeyValue(m_iDogTag, "model", modelname);
+			//DispatchKeyValue(m_iDogTag, "physicsmode", "2");
+			//DispatchKeyValue(m_iDogTag, "massScale", "1.0");
+			DispatchKeyValue(m_iDogTag, "targetname", targetname);
 
-		SDKHook(m_iDogTag, SDKHook_StartTouch, OnDogTagTouched);
+			
+			SetEntProp(m_iDogTag, Prop_Send, "m_usSolidFlags", 136);  //8 was default, 136 is OK for dynamic
+			SetEntProp(m_iDogTag, Prop_Send, "m_CollisionGroup", 11); //1 was default, 11 is ok for dynamic
+			DispatchKeyValueVector(m_iDogTag, "Origin", deathorigin);
+			DispatchSpawn(m_iDogTag);
 
-		
-		new m_iRotator = CreateEntityByName("func_rotating");
-		DispatchKeyValueVector(m_iRotator, "Origin", deathorigin);
-		DispatchKeyValue(m_iRotator, "targetname", targetname);
-		DispatchKeyValue(m_iRotator, "maxspeed", "100"); //100 is good!
-		DispatchKeyValue(m_iRotator, "friction", "0");
-		DispatchKeyValue(m_iRotator, "dmg", "0");
-		DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
-		DispatchKeyValue(m_iRotator, "spawnflags", "64");  //64 default
-		DispatchSpawn(m_iRotator);
-		
-		SetVariantString("!activator");
-		AcceptEntityInput(m_iDogTag, "SetParent", m_iRotator, m_iRotator);
-		AcceptEntityInput(m_iRotator, "Start");
+			SDKHook(m_iDogTag, SDKHook_StartTouch, OnDogTagTouched);
 
-		SetEntPropEnt(m_iDogTag, Prop_Send, "m_hEffectEntity", m_iRotator);
-		
-	}	
+			
+			new m_iRotator = CreateEntityByName("func_rotating");
+			DispatchKeyValueVector(m_iRotator, "Origin", deathorigin);
+			DispatchKeyValue(m_iRotator, "targetname", targetname);
+			DispatchKeyValue(m_iRotator, "maxspeed", "50"); //100 is good!
+			DispatchKeyValue(m_iRotator, "friction", "0");
+			DispatchKeyValue(m_iRotator, "dmg", "0");
+			DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
+			DispatchKeyValue(m_iRotator, "spawnflags", "64");  //64 default
+			DispatchSpawn(m_iRotator);
+			
+			SetVariantString("!activator");
+			AcceptEntityInput(m_iDogTag, "SetParent", m_iRotator, m_iRotator); 
+			AcceptEntityInput(m_iRotator, "Start");
+
+			SetEntPropEnt(m_iDogTag, Prop_Send, "m_hEffectEntity", m_iRotator); 
+			
+			DogTagDropTimer[m_iRotator] = CreateTimer(g_DogTagRemoveTime, RemoveEntity, m_iRotator);
+			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, RemoveEntity, m_iDogTag); // delaying parent just in case
+			
+		}	
+		return Plugin_Handled;
+	}
+	
+	if(StrEqual(modelname, g_DogTagModelNSFphysics) || (StrEqual(modelname, g_DogTagModelJINRAIphysics)))
+	{
+		decl m_iDogTag;
+
+		if((m_iDogTag = CreateEntityByName("prop_physics_override")) != -1)
+		{
+			new String:targetname[100];
+
+			if(StrEqual(modelname, g_DogTagModelNSF, false))
+			{
+				Format(targetname, sizeof(targetname), "NSFDogTag_%i", m_iDogTag);   //FIXME! probably won't work remove
+			}
+			if(StrEqual(modelname, g_DogTagModelJINRAI, false))
+			{
+				Format(targetname, sizeof(targetname), "JINRAIDogTag_%i", m_iDogTag);
+			}
+
+			DispatchKeyValue(m_iDogTag, "model", modelname);
+			//DispatchKeyValue(m_iDogTag, "physicsmode", "2");
+			DispatchKeyValue(m_iDogTag, "massScale", "100.0");
+			DispatchKeyValue(m_iDogTag, "targetname", targetname);
+
+			
+			SetEntProp(m_iDogTag, Prop_Send, "m_usSolidFlags", 136);  //8 was default, 136 is OK for dynamic
+			SetEntProp(m_iDogTag, Prop_Send, "m_CollisionGroup", 6); //1 was default, 11 is ok for dynamic
+			DispatchKeyValueVector(m_iDogTag, "Origin", deathorigin);
+			AcceptEntityInput(m_iDogTag, "DisableShadow"); 
+			DispatchSpawn(m_iDogTag);
+
+			SDKHook(m_iDogTag, SDKHook_StartTouch, OnDogTagTouched);
+
+			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, RemoveEntity, m_iDogTag); // delaying parent just in case
+			
+		}	
+		return Plugin_Handled;
+	}
 	return Plugin_Handled;
 }
 
@@ -606,27 +1015,150 @@ public Action:OnDogTagTouched(propi, client)
 {
 	if(client > 0 && client <= GetMaxClients() && propi > 0 && !IsFakeClient(client) && IsValidEntity(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(propi))
 	{
-
+ 		// kill the linked func_rotating first
 		new m_iRotator = GetEntPropEnt(propi, Prop_Send, "m_hEffectEntity");
-		if(m_iRotator && IsValidEdict(m_iRotator))
-		AcceptEntityInput(m_iRotator, "Kill");  			// need to kill the func_rotating first otherwise the origin coordinates will be 0,0,0 (local coordinates versus global?)
-		new Float:coords_KilledEnt[3];
-		GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
-	
-		EmitSoundToAll(g_AmmoPickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
-	
-		#if DEBUG > 1
-		PrintToChatAll("Picked up dogtag nsf");		
+		if(m_iRotator > 0 && IsValidEdict(m_iRotator) && DogTagDropTimer[m_iRotator] != INVALID_HANDLE)
+		AcceptEntityInput(m_iRotator, "Kill");
+		
+		#if DEBUG > 0
+		PrintToChatAll("[DEBUG] Killed rotator dogtag %i", m_iRotator);
 		#endif
 
-		CreateTimer(0.0, RemoveEntity, propi);
-		//AcceptEntityInput(propi, "kill");
-	
-		grenade_coords_cursor++;
-		return Plugin_Handled;
+		//check team affiliation
+		new playerteam = GetClientTeam(client);
+		
+		if(playerteam == 3) //3 is NSF
+		{
+
+			//checking model name, which determines dogtag ownership (bad method, needs improvement)
+			new String:modelname[128];
+			GetEntPropString(propi, Prop_Data, "m_ModelName", modelname, 128);
+			
+			if(StrEqual(modelname, g_DogTagModelNSF, false))  // model is NSF, we deny
+			{
+				if(GetTeamScore(playerteam) < 0)
+				{
+					SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  //adding one point to team score board, because we're nice
+				}
+				
+				if(GetEntProp(client, Prop_Data, "m_iFrags") < 0)  //same, if player score is negative (after a TK), we are nice and increment back up
+					SetEntProp(client, Prop_Data, "m_iFrags", GetEntProp(client, Prop_Data, "m_iFrags") + 1 );
+
+				
+				// emit sound effect
+				new Float:coords_KilledEnt[3];
+				GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+				EmitSoundToAll(g_DogTagPickupSoundDenied, SOUND_FROM_WORLD, SNDCHAN_AUTO, 130, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
+				
+				
+				#if DEBUG > 0
+				PrintToChatAll("Denied a dogtag");
+				PrintToConsole(client, "Denied a dogtag, coords %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+				#endif
+				PrintToChat(client, "You denied a Memory Footprint!");
+				KillItemTimer(propi);					 //killing timer handle that was supposed to remove it after a while
+				CreateTimer(0.1, RemoveEntity, propi);
+				return Plugin_Handled;
+			}
+			
+			if(StrEqual(modelname, g_DogTagModelJINRAI, false))  // model is JINRAI, we add point
+			{
+
+				SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  // adding one point to team score board
+				
+				if(g_KF_Hardcore_enabled)
+				{
+					SetEntProp(client, Prop_Data, "m_iFrags", GetEntProp(client, Prop_Data, "m_iFrags") + 1 ); //adding one point to player (if hardcore mode enabled)
+				}
+				
+				// emit sound effect
+				new Float:coords_KilledEnt[3];
+				GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+				EmitSoundToAll(g_DogTagPickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_HIGH, -1, coords_KilledEnt);
+			
+				#if DEBUG > 0
+				PrintToChatAll("Picked up a dogtag");
+				PrintToConsole(client, "Picked up a dogtag, coords %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+				#endif
+				PrintToChat(client, "You picked up a Memory Footprint!");
+				KillItemTimer(propi);
+				CreateTimer(0.1, RemoveEntity, propi);
+				return Plugin_Handled;
+			}
+		}
+		
+		if(playerteam == 2) //2 is JINRAI
+		{
+
+			//checking model name, which determines dogtag ownership (bad method, needs improvement)
+			new String:modelname[128];
+			GetEntPropString(propi, Prop_Data, "m_ModelName", modelname, 128);
+			
+			if(StrEqual(modelname, g_DogTagModelJINRAI, false))  // model is JINRAI, we deny
+			{
+				if(GetTeamScore(playerteam) < 0)
+				{
+					SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  //adding one point to team score board, because we're nice
+				}
+				
+				if(GetEntProp(client, Prop_Data, "m_iFrags") < 0)  //if player score is negative (after a TK), we are kind and increment
+					SetEntProp(client, Prop_Data, "m_iFrags", GetEntProp(client, Prop_Data, "m_iFrags") + 1 );
+
+				
+				// emit sound effect
+				new Float:coords_KilledEnt[3];
+				GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+				EmitSoundToAll(g_DogTagPickupSoundDenied, SOUND_FROM_WORLD, SNDCHAN_AUTO, 130, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
+				
+				#if DEBUG > 0
+				PrintToChatAll("Denied a dogtag");
+				PrintToConsole(client, "Denied a dogtag, coords %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+				#endif
+				PrintToChat(client, "You denied a Memory Footprint!");
+				KillItemTimer(propi);
+				CreateTimer(0.1, RemoveEntity, propi);
+				return Plugin_Handled;
+			}
+			
+			if(StrEqual(modelname, g_DogTagModelNSF, false))  // model is NSF, we add point
+			{
+
+				SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  // adding one point to team score board
+				if(g_KF_Hardcore_enabled)
+				{
+					SetEntProp(client, Prop_Data, "m_iFrags", GetEntProp(client, Prop_Data, "m_iFrags") + 1 ); //adding one point to player (if hardcore mode enabled)
+				}
+				
+				// emit sound effect
+				new Float:coords_KilledEnt[3];
+				GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+				EmitSoundToAll(g_DogTagPickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_HIGH, -1, coords_KilledEnt);
+			
+				#if DEBUG > 0
+				PrintToChatAll("Picked up a dogtag");
+				PrintToConsole(client, "Picked up a dogtag, coords %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+				#endif
+				PrintToChat(client, "You picked up a Memory Footprint!");
+				KillItemTimer(propi);
+				CreateTimer(0.1, RemoveEntity, propi);
+				return Plugin_Handled;
+			}
+			
+		}
+		
 	}
 	#if DEBUG > 1
-	PrintToChatAll("skipped prop = %i", propi);
+	if(client > 0 && client <= GetMaxClients() && propi > 0 && IsValidEntity(client) && !IsFakeClient(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(propi))
+	{
+		new Float:coords_KilledEnt[3];
+		new m_iRotator = GetEntPropEnt(propi, Prop_Send, "m_hEffectEntity");
+		if(m_iRotator >= 0)
+		{
+			GetEntPropVector(m_iRotator, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+			PrintToChatAll("[DEBUG] skipped condition for dogtag? prop = %i %f %f %f", propi, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+			PrintToServer("[DEBUG] skipped condition for dogtag? prop = %i %f %f %f", propi, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+		}
+	}
 	#endif
 	
 	return Plugin_Handled;
@@ -784,6 +1316,7 @@ UTIL_GetRandomInt(start, end) {
     return ( rand % (1 + end - start) ) + start;
 }
 
+/*
 UTIL_ArrayIntRand(array[], size)
 {
     if ( size < 2 )
@@ -804,9 +1337,11 @@ UTIL_ArrayIntRand(array[], size)
         array[i] = tmpValue;
     }
 }
+*/
 
-InitArray()
+void InitArray()
 {
+	g_kvfilefound = false;
 	decl String:CurrentMap[64];
 	GetCurrentMap(CurrentMap, 64);		
 	
@@ -818,16 +1353,22 @@ InitArray()
 	BuildPath(Path_SM, file, sizeof(file), "configs/%s.txt", CurrentMap);
 	new Handle:kv = CreateKeyValues("Coordinates");
 	
-	if(FileToKeyValues(kv, file))
+	if(FileExists(file))
+	{
+		g_kvfilefound = true;
+	}
+	
+	if(FileToKeyValues(kv, file) && g_kvfilefound)
 	{
 		do
 		{
-			if(!FileToKeyValues(kv, file))
-			{
-				PrintToServer("%s.txt was not found! No custom spawns!", CurrentMap);
-				g_kvfilefound = false;
-				break;
-			}
+			//if(!FileToKeyValues(kv, file))
+			//{
+			//	PrintToServer("%s.txt was not found! No custom spawns!", CurrentMap);
+			//	g_kvfilefound = false;
+			//	break;
+			//} 
+			//->removed, otherwise randomed spawns not working
 			
 			if(!KvJumpToKey(kv, "player coordinates"))
 			{
@@ -994,7 +1535,7 @@ InitArray()
 				i++;
 			} while (KvGotoNextKey(kv));
 			ladderlines = i; //number of ladder subkeys counted
-			#if DEBUG >= 1
+			#if DEBUG > 1
 			PrintToServer("ladderlines : %d", ladderlines);
 			#endif		
 			
@@ -1002,6 +1543,9 @@ InitArray()
 		} while (false);
 		CloseHandle(kv);
 	}
+	#if DEBUG > 0
+	PrintToServer("KeyValues file for %s not found in %s", CurrentMap, file);
+	#endif
 }
 
 
@@ -1471,7 +2015,7 @@ public Action:OnAmmoPackTouched(propi, client)
 		ammocoords_array[ammo_coords_cursor][2] = coords_KilledEnt[2];
 		
 		#if DEBUG > 1
-		PrintToServer("origin of killed ammopack: %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+		PrintToServer("origin of killed ammopack: %f %f %f cursor=%d", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2], ammo_coords_cursor);
 		PrintToServer("origin new ammopack to spawn: %f %f %f", ammocoords_array[ammo_coords_cursor][0], ammocoords_array[ammo_coords_cursor][1], ammocoords_array[ammo_coords_cursor][2]);
 		#endif
 
@@ -1497,7 +2041,14 @@ public Action:OnAmmoPackTouched(propi, client)
 		return Plugin_Handled;
 	}
 	#if DEBUG > 1
-	PrintToChatAll("skipped condition? prop = %i", propi);
+	if(client > 0 && client <= GetMaxClients() && propi > 0 && IsValidEntity(client) && !IsFakeClient(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(propi))
+	{
+		new Float:coords_KilledEnt[3];
+		new m_iRotator = GetEntPropEnt(propi, Prop_Send, "m_hEffectEntity");
+		GetEntPropVector(m_iRotator, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+		//PrintToChatAll("skipped condition for ammopack? prop = %i %f %f %f", propi, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+		PrintToServer("skipped condition for ammopack? prop = %i %f %f %f", propi, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+	}
 	#endif
 	
 	return Plugin_Handled;
@@ -1606,7 +2157,7 @@ public Action:OnGrenadePackTouched(propi, client)
 		new randomcase = UTIL_GetRandomInt(1, 8);
 		
 		#if DEBUG > 1
-		PrintToChatAll("randomcase is %d", randomcase);
+		PrintToChatAll("random grenade case is %d", randomcase);
 		#endif
 		
 		switch (randomcase)
@@ -1679,13 +2230,13 @@ public Action:OnGrenadePackTouched(propi, client)
 		grenadecoords_array[grenade_coords_cursor][2] = coords_KilledEnt[2];
 
 		#if DEBUG > 1
-		PrintToServer("origin of killed ammopack: %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
-		PrintToServer("origin new ammopack to spawn: %f %f %f", grenadecoords_array[grenade_coords_cursor][0], grenadecoords_array[grenade_coords_cursor][1], grenadecoords_array[grenade_coords_cursor][2]);
+		PrintToServer("origin of killed grenadepack: %f %f %f grenade_coords_cursor = %i", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2], grenade_coords_cursor);
+		PrintToServer("origin new grenadepack to spawn: %f %f %f", grenadecoords_array[grenade_coords_cursor][0], grenadecoords_array[grenade_coords_cursor][1], grenadecoords_array[grenade_coords_cursor][2]);
 		#endif
 
 		//EmitSoundToClient(client, "ammo_pickup.wav", SOUND_FROM_PLAYER,SNDCHAN_AUTO,SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		
-		EmitSoundToAll(g_AmmoPickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
+		EmitSoundToAll(g_GrenadePickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
 		
 		//ClientCommand(client, "playgamesound HL2Player.PickupWeapon"); //this works if all else fails, only to player though
 		// OR Player.PickupWeapon instead of HL2Player.PickupWeapon (NT specific) or BaseCombatCharacter.AmmoPickup because same file pointed at
@@ -1703,17 +2254,38 @@ public Action:OnGrenadePackTouched(propi, client)
 		return Plugin_Handled;
 	}
 	#if DEBUG > 1
-	PrintToChatAll("skipped prop = %i", propi);
+	if(client > 0 && client <= GetMaxClients() && propi > 0 && IsValidEntity(client) && !IsFakeClient(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(propi))
+	{
+		new Float:coords_KilledEnt[3];
+		new m_iRotator = GetEntPropEnt(propi, Prop_Send, "m_hEffectEntity");
+		GetEntPropVector(m_iRotator, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+		PrintToChatAll("skipped condition for grenadepack? prop = %i %f %f %f", propi, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+		PrintToServer("skipped condition for grenadepack? prop = %i %f %f %f", propi, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+	}
 	#endif
 	
 	return Plugin_Handled;
 }
 
-public Action:RemoveEntity(Handle:timer, any:entity)
+stock KillItemTimer(entity)   // do as the healthkit plugin does, place this function in all ontouch, right before killing the prop
 {
+	if(DogTagDropTimer[entity] != INVALID_HANDLE)
+	{
+		CloseHandle(DogTagDropTimer[entity]);
+	}
+	DogTagDropTimer[entity] = INVALID_HANDLE;
+}
+
+
+public Action:RemoveEntity(Handle:timer, any:entity)  // place in all timers that remove after a while
+{
+	DogTagDropTimer[entity] = INVALID_HANDLE;
 	if(IsValidEntity(entity))
 		AcceptEntityInput(entity, "Kill");
-	return Plugin_Stop;
+		#if DEBUG > 1
+		PrintToServer("Removed Entity: %d", entity);
+		#endif
+	return Plugin_Handled;
 }
 
 public Action:timer_RespawnAmmoPack(Handle:timer, cursor_position)
@@ -1798,13 +2370,34 @@ public OnPlayerHurt(Handle:event,const String:name[],bool:dontBroadcast)
 	}
 }
 
+public KillRemainingGhost()
+{ 
+	new String:classname[14];
+	for(new i; i <= GetEntityCount(); i++)
+	{
+
+		if(IsValidEntity(i))
+		{
+			if(!GetEdictClassname(i, classname, 14))
+			continue;
+		
+			if(StrEqual(classname, "weapon_ghost"))
+			{
+				AcceptEntityInput(i, "Kill");
+			}
+		}
+	}
+}
+
+
 // in case we use on-map basis plugin load, unload the plugin after this map
 public OnMapEnd()
 {
 	g_DMStarted = false;
 	SetConVarInt(convar_nt_tdm_enabled, 0);
-	//ServerCommand("sm_nt_tdm_enabled 0"); // might need to revert back to this -glub
-	//ServerCommand("sm plugins unload disabled/nt_deathmatch-glub.smx");
-	ServerCommand("sm plugins load nt_assist");
+	SetConVarInt(convar_nt_tdm_kf_enabled, 0);
+	SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0);
+
+	ReloadConflictingPlugins();
 	ServerCommand("sm plugins unload disabled/nt_random_healthpack_drop");
 }
