@@ -307,24 +307,24 @@
 			"coordinates"	"478.436157 -1207.581299 90.531265"
 			"angles"		"38.281013 164.036057 0.0"
 		}
-		"top of train container north-west hangar"
+		"top of train container crane north-west hangar"
 		{
 			"coordinates"	"-436.806152 -2369.911865 198.0"
 			"angles"		"47.771278 -179.990845 0.0"
 		}
-		"top of train container south-west hangar"
+		"top of train container crane south-west hangar"
 		{
-			"coordinates"	"1013.911133 -2601.217041 198.5"
+			"coordinates"	"1013.911133 -2601.217041 198.0"
 			"angles"		"64.359268 2.812986 0.0"
 		}
-		"top of train container south-east hangar"
+		"top of train container crane south-east hangar"
 		{
-			"coordinates"	"1071.687500 -1202.781250 198.5"
+			"coordinates"	"1071.687500 -1202.781250 198.0"
 			"angles"		"53.194218 3.991287 0.0"
 		}
-		"top of train container north-east  hangar"
+		"top of train container crane north-east hangar"
 		{
-			"coordinates"	"31.232487 -1419.333618 246.781250"
+			"coordinates"	"31.232487 -1419.333618 198.0"
 			"angles"		"56.144978 178.651886 0.0"
 		}
 		"hangar ground level north middle"
