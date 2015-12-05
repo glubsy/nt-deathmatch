@@ -34,6 +34,7 @@ Changelog
 	0.1.7
 		*Added votes -glub
 		
+		TODO:	fix map changing after votetdm (probably related to mp_timelimit)
 		TODO:	fix grenades not always picked up
 		TODO:	fix weapon crates not respawning after some occurences
 		TODO:	clear unused detapacks after a while with timer (check for no ownership)
@@ -162,7 +163,12 @@ new const String:g_ConflictingPlugins[][] =
 	"nt_ghostcap.smx",
 	"nt_assist.smx",
 	"nt_competitive.smx",
-	"nt_autosquad.smx"
+	"nt_autosquad.smx",
+	"nt_damage-noassist.smx",
+	"nt_mirrordamage.smx",
+	"nt_playercount.smx",
+	"nt_unlimitedsquads.smx"
+	//"nt_tkpenaltyfix.smx" to remove -1 on tk, on top of ours
 };
 
 
@@ -195,11 +201,13 @@ public OnPluginStart()
 	#if DEBUG > 1
 	RegAdminCmd("sm_forcestartdm", CommandRestartDeatchmatch, ADMFLAG_SLAY, "forces deathmatch-debug command for testing");
 	RegAdminCmd("sm_forcestopdm", CommandStopDeatchmatch, ADMFLAG_SLAY, "stops deathmatch- debug command for testing");
-	RegAdminCmd("change_gamestate_gr", ChangeGameStateGR, ADMFLAG_SLAY, "change gamestate through the GameRules");
-	RegAdminCmd("change_gamestate_proxy", ChangeGameStateProxy, ADMFLAG_SLAY, "change gamestate through proxy");
+	RegAdminCmd("change_gamestate_gr", ChangeGameStateGR, ADMFLAG_SLAY, "change gamestate through the GameRules: change_gamestate_gr <0/1/2>");
+	RegAdminCmd("change_gamestate_proxy", ChangeGameStateProxy, ADMFLAG_SLAY, "change gamestate through proxy: change_gamestate_proxy <0/1/2>");
 	RegAdminCmd("check_gamestate_gr", CheckGameStateGR, ADMFLAG_SLAY, "check gamestate through Gamerules");
 	RegAdminCmd("check_gamestate_proxy", CheckGameStateProxy, ADMFLAG_SLAY, "check gamestate through proxy");	
 	RegAdminCmd("check_gametype", CheckGameType, ADMFLAG_SLAY, "check gametype");
+	RegAdminCmd("change_gametype", ChangeGameType, ADMFLAG_SLAY, "change gametype: change_gametype <1/2>");
+	RegAdminCmd("change_gametype_gr", ChangeGameTypeGR, ADMFLAG_SLAY, "change gametype through GameRules: change_gametype_gr <1/2>");
 	#endif
 	
 	HookConVarChange(convar_nt_tdm_timelimit, OnTimeLimitChanged);
@@ -300,8 +308,8 @@ public OnConfigsExecuted()
 	PrecacheModel(g_LadderModel);
 	PrecacheModel(g_GrenadePackModel);
 	PrecacheModel(g_AmmoPackModel);
-	PrecacheModel(g_DogTagModelNSF);
-	PrecacheModel(g_DogTagModelJINRAI);
+	PrecacheModel(g_DogTagModelNSF, true);
+	PrecacheModel(g_DogTagModelJINRAI, true);
 	//Precaching sounds
 	PrecacheSound(g_AmmoPickupSound);
 	PrecacheSound(g_GrenadePickupSound);
@@ -344,7 +352,8 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		ServerCommand("neo_restart_this 1");
 
 		ReloadConflictingPlugins();
-		ServerCommand("sm plugins unload disabled/nt_random_healthpack_drop");
+		ServerCommand("nt_healthkitdrop 0");
+		ServerCommand("sm_cv tpr_enabled 0"); //disabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
 		SetConVarInt(convar_nt_tdm_kf_enabled, 0); 
 		SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0); 
 
@@ -364,8 +373,9 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		//GameRules_SetProp("m_iGameState", 1);    // if gamestate change from 0 to 1 and neo_restart_this 1, CTG back to normal, no respawn
 		//ServerCommand("neo_restart_this 1");
 		
-		CreateTimer(0.9, UnloadConflictingPlugins);
-		ServerCommand("sm plugins load disabled/nt_random_healthpack_drop"); //loading random healthpack drops
+		CreateTimer(1.5, UnloadConflictingPlugins);
+		ServerCommand("nt_healthkitdrop 1");
+		ServerCommand("sm_cv tpr_enabled 1");  //enabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
 		
 		SetConVarInt(convar_nt_tdm_kf_enabled, 1); //we start KF enabled by default with TDM for now. FIXME: remove later.
 		//SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 1); //if we want hardcore by default
@@ -624,6 +634,45 @@ public Action:ChangeGameStateGR(client, args)
 
 	return Plugin_Handled;
 }
+public Action:ChangeGameTypeGR(client, args)
+{ 
+	new String:arg1[130];
+	GetCmdArg(1, arg1, sizeof(arg1));
+	new state = StringToInt(arg1);
+	
+	new statevalue = GameRules_GetProp("m_iGameType");
+	PrintToServer("Before in GR: m_iGameType %i", statevalue);	
+	
+	GameRules_SetProp("m_iGameType", state);
+	
+	statevalue = GameRules_GetProp("m_iGameType");
+	PrintToServer("After in GR: m_iGameType %i", statevalue);	
+	PrintToChatAll("After in GR: m_iGameType %i", statevalue);	
+	return Plugin_Handled;
+}
+
+public Action:ChangeGameType(client, args)
+{ 
+	new String:arg1[130];
+	GetCmdArg(1, arg1, sizeof(arg1));
+	new typevalue = StringToInt(arg1);
+	
+	new index = -1;
+	index = FindEntityByClassname(index, "neo_gamerules");
+	
+	
+	typevalue = GetEntData(index, GetEntSendPropOffs(index, "m_iGameType"));
+	
+	PrintToServer("Before in GR: m_iGameType %i", typevalue);	
+	
+	SetEntData(index, GetEntSendPropOffs(index, "m_iGameType"), typevalue);
+	
+	PrintToServer("After in GR: m_iGameType %i", GetEntProp(index, Prop_Data, "m_iGameType"));	
+	PrintToChatAll("After in GR: m_iGameType %i", typevalue);	
+	return Plugin_Handled;
+}
+
+
 
 public Action:CheckGameStateGR(client, args)
 { 
@@ -2399,5 +2448,6 @@ public OnMapEnd()
 	SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0);
 
 	ReloadConflictingPlugins();
-	ServerCommand("sm plugins unload disabled/nt_random_healthpack_drop");
+	ServerCommand("nt_healthkitdrop 0");
+	ServerCommand("tpr_enabled 0");
 }
