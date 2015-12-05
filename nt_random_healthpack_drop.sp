@@ -40,7 +40,7 @@ public OnPluginStart()
 {	
 	CreateConVar("nt_drop_random_health_version", PLUGIN_VERSION, "Healthpack drop Plugin Version", FCVAR_DONTRECORD|FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY)
 	SetConVarString(FindConVar("nt_drop_random_health_version"), PLUGIN_VERSION)
-	g_healthkitenabled = CreateConVar("nt_healthkitdrop", "1", "Enables or disables random healthkit drops on death", FCVAR_PLUGIN);
+	g_healthkitenabled = CreateConVar("nt_healthkitdrop", "0", "Enables or disables random healthkit drops on death", FCVAR_PLUGIN);
 	kithealth = CreateConVar("nt_drop_health_amount", "30", "<#> = Amount of HP to add to a player when pick up a Healthpack", FCVAR_PLUGIN, true, 5.0, true, 300.0)
 	kithealthmax = CreateConVar("nt_drop_health_maximum", "100", "max. Amount of Health a Player can have to pickup a Healthpack", FCVAR_PLUGIN, true, 100.0, true, 600.0)
 	kithealthmaxvar = CreateConVar("nt_drop_health_maximum_var", "0", "what happens when max. Health is reached: 0 = delete Healthpack , 1 = Healthpack will dropped from next dead player , 2 = do nothing with Healthpack", FCVAR_PLUGIN, true, 0.0, true, 2.0)
