@@ -235,46 +235,6 @@ public OnPluginStart()
 
 	// init random number generator
 	SetRandomSeed(RoundToFloor(GetEngineTime()));
-	
-	//Adding custom models to forced download
-	AddFileToDownloadsTable("models/ladder/ladder4.mdl");
-	AddFileToDownloadsTable("models/ladder/ladder4.dx80.vtx");
-	AddFileToDownloadsTable("models/ladder/ladder4.dx90.vtx");
-	AddFileToDownloadsTable("models/ladder/ladder4.phy");
-	AddFileToDownloadsTable("models/ladder/ladder4.sw.vtx");
-	AddFileToDownloadsTable("models/ladder/ladder4.vvd");
-	AddFileToDownloadsTable("models/ladder/ladder4.xbox.vtx");
-	AddFileToDownloadsTable("materials/models/ladder/ladder4.vmt");
-	AddFileToDownloadsTable("materials/models/ladder/ladder4.vtf");
-	
-	AddFileToDownloadsTable("models/logo/jinrai_logo.mdl");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.dx80.vtx");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.dx90.vtx");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.phy");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.sw.vtx");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.vvd");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.xbox.vtx");
-	AddFileToDownloadsTable("models/logo/nsf_logo.mdl");
-	AddFileToDownloadsTable("models/logo/nsf_logo.dx80.vtx");
-	AddFileToDownloadsTable("models/logo/nsf_logo.dx90.vtx");
-	AddFileToDownloadsTable("models/logo/nsf_logo.phy");
-	AddFileToDownloadsTable("models/logo/nsf_logo.sw.vtx");
-	AddFileToDownloadsTable("models/logo/nsf_logo.vvd");
-	AddFileToDownloadsTable("models/logo/nsf_logo.xbox.vtx");
-	AddFileToDownloadsTable("materials/models/logo/jinrai_logo.vmt");
-	AddFileToDownloadsTable("materials/models/logo/nsf_logo.vmt");
-
-	//Precaching models
-	PrecacheModel(g_LadderModel, true);
-	PrecacheModel(g_GrenadePackModel, true);
-	PrecacheModel(g_AmmoPackModel, true);
-	PrecacheModel(g_DogTagModelNSF, true);
-	PrecacheModel(g_DogTagModelJINRAI, true);
-	//Precaching sounds
-	PrecacheSound(g_AmmoPickupSound, true);
-	PrecacheSound(g_GrenadePickupSound, true);
-	PrecacheSound(g_DogTagPickupSound, true);
-	PrecacheSound(g_DogTagPickupSoundDenied, true);
 }
 
 
@@ -304,17 +264,46 @@ public OnConfigsExecuted()
 	
 	CheckConvarsOnMapLoaded();
 	
+
 	//Precaching models
-	PrecacheModel(g_LadderModel);
-	PrecacheModel(g_GrenadePackModel);
-	PrecacheModel(g_AmmoPackModel);
+	PrecacheModel(g_LadderModel, true);
+	PrecacheModel(g_GrenadePackModel, true);
+	PrecacheModel(g_AmmoPackModel, true);
 	PrecacheModel(g_DogTagModelNSF, true);
 	PrecacheModel(g_DogTagModelJINRAI, true);
 	//Precaching sounds
-	PrecacheSound(g_AmmoPickupSound);
-	PrecacheSound(g_GrenadePickupSound);
-	PrecacheSound(g_DogTagPickupSound);
-	PrecacheSound(g_DogTagPickupSoundDenied);
+	PrecacheSound(g_AmmoPickupSound, true);
+	PrecacheSound(g_GrenadePickupSound, true);
+	PrecacheSound(g_DogTagPickupSound, true);
+	PrecacheSound(g_DogTagPickupSoundDenied, true);
+	
+	//Adding custom models to forced download
+	AddFileToDownloadsTable("models/ladder/ladder4.mdl");
+	AddFileToDownloadsTable("models/ladder/ladder4.dx80.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.dx90.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.phy");
+	AddFileToDownloadsTable("models/ladder/ladder4.sw.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.vvd");
+	AddFileToDownloadsTable("models/ladder/ladder4.xbox.vtx");
+	AddFileToDownloadsTable("materials/models/ladder/ladder4.vmt");
+	AddFileToDownloadsTable("materials/models/ladder/ladder4.vtf");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.mdl");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.dx80.vtx");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.dx90.vtx");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.phy");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.sw.vtx");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.vvd");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.xbox.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.mdl");
+	AddFileToDownloadsTable("models/logo/nsf_logo.dx80.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.dx90.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.phy");
+	AddFileToDownloadsTable("models/logo/nsf_logo.sw.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.vvd");
+	AddFileToDownloadsTable("models/logo/nsf_logo.xbox.vtx");
+	AddFileToDownloadsTable("materials/models/logo/jinrai_logo.vmt");
+	AddFileToDownloadsTable("materials/models/logo/nsf_logo.vmt");
+
 }
 
 /*
