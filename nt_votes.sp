@@ -8,12 +8,13 @@ VOTE from funvotes
 
 Menu g_hVoteMenu = null;
 
-ConVar g_Cvar_Limits[5] = {null, ...};
+ConVar g_Cvar_Limits[6] = {null, ...};
 ConVar g_Cvar_Neorestart;
 ConVar g_Cvar_TDM;
 ConVar g_Cvar_KF;
 ConVar g_Cvar_Healthkits;
 ConVar g_Cvar_KF_Hardcore;
+ConVar g_Cvar_tribestokyo;
 
 enum voteType
 {
@@ -21,7 +22,8 @@ enum voteType
 	tdm,
 	kf,
 	healthkits,
-	kf_hardcore
+	kf_hardcore,
+	tribestokyo
 };
 new voteType:g_voteType = voteType:neorestart;
 #define VOTE_CLIENTID	0
@@ -44,18 +46,21 @@ void InitVoteCvars()
 	RegAdminCmd("sm_votekf", Command_VoteKF, 0, "sm_votekf");
 	RegAdminCmd("sm_votehealthkits", Command_VoteHealthkits, 0, "sm_votehealthkits");
 	RegAdminCmd("sm_votekfhardcore", Command_VoteKF_Hardcore, 0, "sm_votekfhardcore");
+	RegAdminCmd("sm_votetribestokyo", Command_Votetribestokyo, 0, "sm_votetribestokyo");
 	
 	g_Cvar_Limits[0] = CreateConVar("sm_vote_restart", "0.60", "percent required for successful round restart.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[1] = CreateConVar("sm_vote_tdm", "0.60", "percent required for successful TDM start.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[2] = CreateConVar("sm_vote_kf", "0.60", "percent required for successful Kill Confirmed mode start.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[3] = CreateConVar("sm_vote_healthkits", "0.60", "percent required to disable random healthkit spawning.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[4] = CreateConVar("sm_vote_kf_hardcore", "0.60", "percent required to disable Kill Confirmed HARDCORE mode.", 0, true, 0.05, true, 1.0);
+	g_Cvar_Limits[5] = CreateConVar("sm_vote_tribestokyo", "0.60", "percent required to disable TribesTokyo mode.", 0, true, 0.05, true, 1.0);
 	
 	g_Cvar_Neorestart = FindConVar("neo_restart_this");
 	g_Cvar_TDM = FindConVar("nt_tdm_enabled");
 	g_Cvar_KF = FindConVar("nt_tdm_kf_enabled");
 	g_Cvar_Healthkits = FindConVar("nt_healthkitdrop");
 	g_Cvar_KF_Hardcore = FindConVar("nt_tdm_kf_hardcore_enabled");
+	g_Cvar_tribestokyo = FindConVar("sm_nt_tribes");
 	
 	CreateTimer(5.0, CheckLateCvars);
 	
@@ -75,6 +80,7 @@ public Action:CheckLateCvars(Handle:timer)
 	g_Cvar_KF = FindConVar("nt_tdm_kf_enabled");
 	g_Cvar_Healthkits = FindConVar("nt_healthkitdrop");
 	g_Cvar_KF_Hardcore = FindConVar("nt_tdm_kf_hardcore_enabled");
+	g_Cvar_tribestokyo = FindConVar("sm_nt_tribes");
 }
 
 public OnAdminMenuReady(Handle aTopMenu)
@@ -100,6 +106,7 @@ public OnAdminMenuReady(Handle aTopMenu)
 		hTopMenu.AddItem("sm_votekf", AdminMenu_VoteKF, voting_commands, "sm_votekf", ADMFLAG_VOTE);
 		hTopMenu.AddItem("sm_votehealthkits", AdminMenu_VoteHealthkits, voting_commands, "sm_votehealthkits", ADMFLAG_VOTE);
 		hTopMenu.AddItem("sm_votekfhardcore", AdminMenu_VoteKF_Hardcore, voting_commands, "sm_votekfhardcore", ADMFLAG_VOTE);
+		hTopMenu.AddItem("sm_votetribestokyo", AdminMenu_Votetribestokyo, voting_commands, "sm_votetribestokyo", ADMFLAG_VOTE);
 	}
 }
 
@@ -202,6 +209,12 @@ public Handler_VoteCallback(Menu menu, MenuAction action, int param1, int param2
 					PrintToChatAll("[SM] Cvar changed", "nt_tdm_kf_hardcore_enabled", (g_Cvar_KF_Hardcore.BoolValue ? "0" : "1"));
 					LogAction(-1, -1, "Changing KF Hardcore state due to vote.", (g_Cvar_KF_Hardcore.BoolValue ? "0" : "1"));
 					g_Cvar_KF_Hardcore.BoolValue = !g_Cvar_KF_Hardcore.BoolValue;
+				}
+				case (voteType:tribestokyo):
+				{
+					PrintToChatAll("[SM] Cvar changed", "sm_nt_tribes", (g_Cvar_tribestokyo.BoolValue ? "0" : "1"));
+					LogAction(-1, -1, "Changing TribesTokyo state due to vote.", (g_Cvar_tribestokyo.BoolValue ? "0" : "1"));
+					g_Cvar_tribestokyo.BoolValue = !g_Cvar_tribestokyo.BoolValue;
 				}
 			}
 		}
@@ -626,7 +639,7 @@ public AdminMenu_VoteKF_Hardcore(Handle:topmenu,
 	}
 	else if (action == TopMenuAction_SelectOption)
 	{
-		DisplayVoteHealthkitsMenu(param);
+		DisplayVoteKF_Hardcore_Menu(param);
 	}
 	else if (action == TopMenuAction_DrawOption)
 	{	
@@ -644,6 +657,79 @@ public Action:Command_VoteKF_Hardcore(client, args)
 	}
 	
 	DisplayVoteKF_Hardcore_Menu(client);
+	
+	return Plugin_Handled;
+}
+
+
+DisplayVotetribestokyo_Menu(client)
+{
+	if (IsVoteInProgress())
+	{
+		ReplyToCommand(client, "[SM] Vote in Progress");
+		return;
+	}	
+	
+	if (!TestVoteDelay(client))
+	{
+		return;
+	}
+	
+	LogAction(client, -1, "\"%L\" initiated a vote about TribesTokyo mode.", client);
+	ShowActivity2(client, "[SM]", "Initiated Vote about TribesTokyo mode.");
+	
+	g_voteType = voteType:tribestokyo;
+	g_voteInfo[VOTE_NAME][0] = '\0';
+
+	g_hVoteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
+	
+	if (g_Cvar_tribestokyo.BoolValue)
+	{
+		g_hVoteMenu.SetTitle("Vote TribesTokyo mode Off");
+	}
+	else
+	{
+		g_hVoteMenu.SetTitle("Vote TribesTokyo mode On");
+	}
+	
+	g_hVoteMenu.AddItem(VOTE_YES, "Yes");
+	g_hVoteMenu.AddItem(VOTE_NO, "No");
+	g_hVoteMenu.ExitButton = false;
+	g_hVoteMenu.DisplayVoteToAll(20);
+}
+
+
+public AdminMenu_Votetribestokyo(Handle:topmenu, 
+							  TopMenuAction:action,
+							  TopMenuObject:object_id,
+							  param,
+							  String:buffer[],
+							  maxlength)
+{
+	if (action == TopMenuAction_DisplayOption)
+	{
+		Format(buffer, maxlength, "TribesTokyo mode vote", param);
+	}
+	else if (action == TopMenuAction_SelectOption)
+	{
+		DisplayVotetribestokyo_Menu(param);
+	}
+	else if (action == TopMenuAction_DrawOption)
+	{	
+		/* disable this option if a vote is already running */
+		buffer[0] = !IsNewVoteAllowed() ? ITEMDRAW_IGNORE : ITEMDRAW_DEFAULT;
+	}
+}
+
+public Action:Command_Votetribestokyo(client, args)
+{
+	if (args > 0)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_votetribestokyo");
+		return Plugin_Handled;	
+	}
+	
+	DisplayVotetribestokyo_Menu(client);
 	
 	return Plugin_Handled;
 }
