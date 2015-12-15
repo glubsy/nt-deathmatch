@@ -50,6 +50,7 @@ Changelog
 #include <sdktools>
 #include <sdkhooks>
 #include <adminmenu>
+//#include <smlib>
 #define MAXENTITIES 2048
 #define PLUGIN_VERSION	"0.1.7"
 #include "nt_votes.sp"
@@ -235,10 +236,51 @@ public OnPluginStart()
 
 	// init random number generator
 	SetRandomSeed(RoundToFloor(GetEngineTime()));
+
+	/*
+	//Precaching models
+	PrecacheModel(g_LadderModel, true);
+	PrecacheModel(g_GrenadePackModel, true);
+	PrecacheModel(g_AmmoPackModel, true);
+	PrecacheModel(g_DogTagModelNSF, true);
+	PrecacheModel(g_DogTagModelJINRAI, true);
+	//Precaching sounds
+	PrecacheSound(g_AmmoPickupSound, true);
+	PrecacheSound(g_GrenadePickupSound, true);
+	PrecacheSound(g_DogTagPickupSound, true);
+	PrecacheSound(g_DogTagPickupSoundDenied, true);
+	
+	//Adding custom models to forced download
+	AddFileToDownloadsTable("models/ladder/ladder4.mdl");
+	AddFileToDownloadsTable("models/ladder/ladder4.dx80.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.dx90.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.phy");
+	AddFileToDownloadsTable("models/ladder/ladder4.sw.vtx");
+	AddFileToDownloadsTable("models/ladder/ladder4.vvd");
+	AddFileToDownloadsTable("models/ladder/ladder4.xbox.vtx");
+	AddFileToDownloadsTable("materials/models/ladder/ladder4.vmt");
+	AddFileToDownloadsTable("materials/models/ladder/ladder4.vtf");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.mdl");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.dx80.vtx");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.dx90.vtx");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.phy");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.sw.vtx");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.vvd");
+	AddFileToDownloadsTable("models/logo/jinrai_logo.xbox.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.mdl");
+	AddFileToDownloadsTable("models/logo/nsf_logo.dx80.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.dx90.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.phy");
+	AddFileToDownloadsTable("models/logo/nsf_logo.sw.vtx");
+	AddFileToDownloadsTable("models/logo/nsf_logo.vvd");
+	AddFileToDownloadsTable("models/logo/nsf_logo.xbox.vtx");
+	AddFileToDownloadsTable("materials/models/logo/jinrai_logo.vmt");
+	AddFileToDownloadsTable("materials/models/logo/nsf_logo.vmt");*/		//FIXME: remove this and test model precaching again
+
 }
 
 
-public OnConfigsExecuted()
+public OnConfigsExecuted() 
 {
 	g_DMStarted = false;
 	if (GetConVarBool(convar_nt_tdm_enabled))
@@ -322,7 +364,7 @@ public CheckConvarsOnMapLoaded()
 	decl String:currentMap[64];
 	GetCurrentMap(currentMap, 64);
 
-	if(StrEqual(currentMap, "nt_terminal_ctg") || StrEqual(currentMap, "nt_sentinel_ctg") || StrEqual(currentMap, "nt_bullet_tdm") || StrEqual(currentMap, "nt_zaibatsu_ctg") && GetConVarInt(convar_nt_tdm_enabled) == 0)
+	if(StrEqual(currentMap, "nt_terminal_ctg") || StrEqual(currentMap, "nt_sentinel_ctg") || StrEqual(currentMap, "nt_sentinel_tdm") || StrEqual(currentMap, "nt_bullet_tdm") && GetConVarInt(convar_nt_tdm_enabled) == 0)
 		SetConVarInt(convar_nt_tdm_enabled, 1); // we enable the convar for TDM automatically on these maps
 	else
 		SetConVarInt(convar_nt_tdm_enabled, 0);
@@ -342,7 +384,7 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 
 		ReloadConflictingPlugins();
 		ServerCommand("nt_healthkitdrop 0");
-		ServerCommand("sm_cv tpr_enabled 0"); //disabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
+		//ServerCommand("sm_cv tpr_enabled 0"); //disabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
 		SetConVarInt(convar_nt_tdm_kf_enabled, 0); 
 		SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0); 
 
@@ -364,7 +406,7 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		
 		CreateTimer(1.5, UnloadConflictingPlugins);
 		ServerCommand("nt_healthkitdrop 1");
-		ServerCommand("sm_cv tpr_enabled 1");  //enabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
+		//ServerCommand("sm_cv tpr_enabled 1");  //enabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
 		
 		SetConVarInt(convar_nt_tdm_kf_enabled, 1); //we start KF enabled by default with TDM for now. FIXME: remove later.
 		//SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 1); //if we want hardcore by default
@@ -918,6 +960,12 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				SpawnDogTag(deathorigin, g_DogTagModelJINRAI);
 			}
 		}
+		
+		
+		//TODO: clear unused smokes and detpacks
+		
+		
+		
 	}
 	if (!g_DMStarted) 
 	{
@@ -954,7 +1002,7 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 	}	
 }
 
-public Action:SpawnDogTag(Float:deathorigin[3], const String:modelname[])
+public Action:SpawnDogTag(Float:deathlocation[3], const String:modelname[])
 {
 	if(StrEqual(modelname, g_DogTagModelNSF) || (StrEqual(modelname, g_DogTagModelJINRAI)))
 	{
@@ -966,11 +1014,11 @@ public Action:SpawnDogTag(Float:deathorigin[3], const String:modelname[])
 
 			if(StrEqual(modelname, g_DogTagModelNSF, false))
 			{
-				Format(targetname, sizeof(targetname), "NSFDogTag_%i", m_iDogTag);   //FIXME! probably won't work remove
+				Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);   //FIXME! probably won't work
 			}
 			if(StrEqual(modelname, g_DogTagModelJINRAI, false))
 			{
-				Format(targetname, sizeof(targetname), "JINRAIDogTag_%i", m_iDogTag);
+				Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);
 			}
 
 			DispatchKeyValue(m_iDogTag, "model", modelname);
@@ -981,14 +1029,14 @@ public Action:SpawnDogTag(Float:deathorigin[3], const String:modelname[])
 			
 			SetEntProp(m_iDogTag, Prop_Send, "m_usSolidFlags", 136);  //8 was default, 136 is OK for dynamic
 			SetEntProp(m_iDogTag, Prop_Send, "m_CollisionGroup", 11); //1 was default, 11 is ok for dynamic
-			DispatchKeyValueVector(m_iDogTag, "Origin", deathorigin);
+			DispatchKeyValueVector(m_iDogTag, "Origin", deathlocation);
 			DispatchSpawn(m_iDogTag);
 
 			SDKHook(m_iDogTag, SDKHook_StartTouch, OnDogTagTouched);
 
 			
 			new m_iRotator = CreateEntityByName("func_rotating");
-			DispatchKeyValueVector(m_iRotator, "Origin", deathorigin);
+			DispatchKeyValueVector(m_iRotator, "Origin", deathlocation);
 			DispatchKeyValue(m_iRotator, "targetname", targetname);
 			DispatchKeyValue(m_iRotator, "maxspeed", "50"); //100 is good!
 			DispatchKeyValue(m_iRotator, "friction", "0");
@@ -1003,8 +1051,8 @@ public Action:SpawnDogTag(Float:deathorigin[3], const String:modelname[])
 
 			SetEntPropEnt(m_iDogTag, Prop_Send, "m_hEffectEntity", m_iRotator); 
 			
-			DogTagDropTimer[m_iRotator] = CreateTimer(g_DogTagRemoveTime, RemoveEntity, m_iRotator);
-			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, RemoveEntity, m_iDogTag); // delaying parent just in case
+			DogTagDropTimer[m_iRotator] = CreateTimer(g_DogTagRemoveTime, RemoveDogTag, m_iRotator);
+			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, RemoveDogTag, m_iDogTag); // delaying parent just in case
 			
 		}	
 		return Plugin_Handled;
@@ -1020,11 +1068,11 @@ public Action:SpawnDogTag(Float:deathorigin[3], const String:modelname[])
 
 			if(StrEqual(modelname, g_DogTagModelNSF, false))
 			{
-				Format(targetname, sizeof(targetname), "NSFDogTag_%i", m_iDogTag);   //FIXME! probably won't work remove
+				Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);   //FIXME! probably won't work
 			}
 			if(StrEqual(modelname, g_DogTagModelJINRAI, false))
 			{
-				Format(targetname, sizeof(targetname), "JINRAIDogTag_%i", m_iDogTag);
+				Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);
 			}
 
 			DispatchKeyValue(m_iDogTag, "model", modelname);
@@ -1035,13 +1083,13 @@ public Action:SpawnDogTag(Float:deathorigin[3], const String:modelname[])
 			
 			SetEntProp(m_iDogTag, Prop_Send, "m_usSolidFlags", 136);  //8 was default, 136 is OK for dynamic
 			SetEntProp(m_iDogTag, Prop_Send, "m_CollisionGroup", 6); //1 was default, 11 is ok for dynamic
-			DispatchKeyValueVector(m_iDogTag, "Origin", deathorigin);
+			DispatchKeyValueVector(m_iDogTag, "Origin", deathlocation);
 			AcceptEntityInput(m_iDogTag, "DisableShadow"); 
 			DispatchSpawn(m_iDogTag);
 
 			SDKHook(m_iDogTag, SDKHook_StartTouch, OnDogTagTouched);
 
-			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, RemoveEntity, m_iDogTag); // delaying parent just in case
+			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, RemoveDogTag, m_iDogTag); // delaying parent just in case
 			
 		}	
 		return Plugin_Handled;
@@ -1095,7 +1143,7 @@ public Action:OnDogTagTouched(propi, client)
 				#endif
 				PrintToChat(client, "You denied a Memory Footprint!");
 				KillItemTimer(propi);					 //killing timer handle that was supposed to remove it after a while
-				CreateTimer(0.1, RemoveEntity, propi);
+				CreateTimer(0.1, RemoveDogTag, propi);
 				return Plugin_Handled;
 			}
 			
@@ -1120,7 +1168,7 @@ public Action:OnDogTagTouched(propi, client)
 				#endif
 				PrintToChat(client, "You picked up a Memory Footprint!");
 				KillItemTimer(propi);
-				CreateTimer(0.1, RemoveEntity, propi);
+				CreateTimer(0.1, RemoveDogTag, propi);
 				return Plugin_Handled;
 			}
 		}
@@ -1154,7 +1202,7 @@ public Action:OnDogTagTouched(propi, client)
 				#endif
 				PrintToChat(client, "You denied a Memory Footprint!");
 				KillItemTimer(propi);
-				CreateTimer(0.1, RemoveEntity, propi);
+				CreateTimer(0.1, RemoveDogTag, propi);
 				return Plugin_Handled;
 			}
 			
@@ -1178,7 +1226,7 @@ public Action:OnDogTagTouched(propi, client)
 				#endif
 				PrintToChat(client, "You picked up a Memory Footprint!");
 				KillItemTimer(propi);
-				CreateTimer(0.1, RemoveEntity, propi);
+				CreateTimer(0.1, RemoveDogTag, propi);
 				return Plugin_Handled;
 			}
 			
@@ -2314,6 +2362,25 @@ stock KillItemTimer(entity)   // do as the healthkit plugin does, place this fun
 	DogTagDropTimer[entity] = INVALID_HANDLE;
 }
 
+public Action:RemoveDogTag(Handle:timer, any:entity)  // place in all timers that remove after a while
+{
+	DogTagDropTimer[entity] = INVALID_HANDLE;
+	
+	new String:EntName[256];
+	//Entity_GetName(entity, EntName, sizeof(EntName)); //smlib
+	if(IsValidEntity(entity))
+	{
+		if(GetEntPropString(entity, Prop_Data, "m_iName", EntName, sizeof(EntName)))
+		{
+			if(StrContains(EntName, "DogTag") || StrContains(EntName, "Rotator") || StrContains(EntName, "AmmoPack") || StrContains(EntName, "GrenadePack"))
+			{
+				if(entity > -1)
+					AcceptEntityInput(entity, "KillHierarchy");
+			}
+		}
+	}
+}
+
 
 public Action:RemoveEntity(Handle:timer, any:entity)  // place in all timers that remove after a while
 {
@@ -2438,5 +2505,5 @@ public OnMapEnd()
 
 	ReloadConflictingPlugins();
 	ServerCommand("nt_healthkitdrop 0");
-	ServerCommand("tpr_enabled 0");
+	//ServerCommand("tpr_enabled 0");
 }
