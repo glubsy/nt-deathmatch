@@ -33,16 +33,21 @@ Changelog
 		*Added dogtags / Kill Confirmed game mode -glub
 	0.1.7
 		*Added votes -glub
+	0.1.8
+		*Moved votes to its own plugin, nt_customvotes
+		*Fixed grenades spawning below players when created
+		*Added incremental grenade refill (unlimited grenades)
+		*Fixed missing weapons due to lack of checks on kill timers
+
 		
+		TODO:	fix end of round displaying proper banner
 		TODO:	fix map changing after votetdm (probably related to mp_timelimit)
-		TODO:	fix grenades not always picked up
-		TODO:	fix weapon crates not respawning after some occurences
 		TODO:	clear unused detapacks after a while with timer (check for no ownership)
 		TODO:	respawn props on round restart (in case someone does neo_restart_this)
 		TODO:	rendermode for spawn protected players (transparency?)
 		TODO:	parse an autostart file containing a selection of maps (fopen() + StrContains())
 				instead of hardcoding them (must parse it first).
-		TODO:	physics props for dogtags, facing top on z axis always (in progress) 
+		TODO:	physics props for dogtags, facing top on z axis always
 		
 **************************************************************/
 #pragma semicolon 1
@@ -50,13 +55,13 @@ Changelog
 #include <sdktools>
 #include <sdkhooks>
 #include <adminmenu>
-//#include <smlib>
+#include <smlib>
 #define MAXENTITIES 2048
-#define PLUGIN_VERSION	"0.1.7"
-#include "nt_votes.sp"
+#define PLUGIN_VERSION	"0.1.8"
 
 #define DEBUG 0 //1 or 2
-
+#define TEAM_NSF 3
+#define TEAM_JINRAI 2
 
 public Plugin:myinfo =
 {
@@ -152,6 +157,8 @@ new const String:g_DogTagModelJINRAIphysics[] = "models/logo/jinrai_logo2.mdl";
 new const String:g_DogTagPickupSound[] = "common/warning.wav";
 new const String:g_DogTagPickupSoundDenied[] = "buttons/combine_button5.wav";
 
+new bool:g_bDisplay[MAXPLAYERS+1] = false;
+
 /*
 new const String:gSpawnSounds[][] =
 {
@@ -165,11 +172,11 @@ new const String:g_ConflictingPlugins[][] =
 	"nt_assist.smx",
 	"nt_competitive.smx",
 	"nt_autosquad.smx",
-	"nt_damage-noassist.smx",
+	//"nt_damage.smx",  //FIXME enabling this may cause weird problems!
 	"nt_mirrordamage.smx",
 	"nt_playercount.smx",
 	"nt_unlimitedsquads.smx"
-	//"nt_tkpenaltyfix.smx" to remove -1 on tk, on top of ours
+	//"nt_tkpenaltyfix.smx" //enable to remove -1 on tk, on top of ours
 };
 
 
@@ -185,10 +192,7 @@ public OnPluginStart()
 	convar_nt_tdm_kf_hardcore_enabled = CreateConVar("nt_tdm_kf_hardcore_enabled", "0", "Enables or Disables gaining points ONLY by pickup up dogtags.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	convar_nt_tdm_ammo_respawn_time = CreateConVar("nt_tdm_ammo_respawn_time", "45.0", "Time in seconds before an ammo pack will respawn", FCVAR_PLUGIN);
 	convar_nt_tdm_grenade_respawn_time = CreateConVar("nt_tdm_grenade_respawn_time", "60.0", "Time in seconds before a grenade pack will respawn", FCVAR_PLUGIN);
-	convar_nt_dogtag_remove_timer = CreateConVar("nt_dogtag_remove_time", "30.0", "Time in seconds before a dogtag disappears", FCVAR_PLUGIN);
-
-	//vote initialization 
-	InitVoteCvars();
+	convar_nt_dogtag_remove_timer = CreateConVar("nt_dogtag_remove_time", "40.0", "Time in seconds before a dogtag disappears", FCVAR_PLUGIN);
 	
 	AutoExecConfig(true);
 	
@@ -197,7 +201,6 @@ public OnPluginStart()
 	RegAdminCmd("sm_randomplayerspawns", Command_Randomplayerspawns, ADMFLAG_KICK, "Enables or disables random player spawns.");
 	RegAdminCmd("sm_tdm_timelimit", Command_TDM_Timelimit, ADMFLAG_KICK, "Sets team deathmatch timelimit.");
 	RegAdminCmd("sm_kf_hardcore_enable", Command_KF_Hardcore_Enable, ADMFLAG_KICK, "Enables or disables gaining points ONLY by pickup up dogtags.");
-	
 	
 	#if DEBUG > 1
 	RegAdminCmd("sm_forcestartdm", CommandRestartDeatchmatch, ADMFLAG_SLAY, "forces deathmatch-debug command for testing");
@@ -236,47 +239,6 @@ public OnPluginStart()
 
 	// init random number generator
 	SetRandomSeed(RoundToFloor(GetEngineTime()));
-
-	/*
-	//Precaching models
-	PrecacheModel(g_LadderModel, true);
-	PrecacheModel(g_GrenadePackModel, true);
-	PrecacheModel(g_AmmoPackModel, true);
-	PrecacheModel(g_DogTagModelNSF, true);
-	PrecacheModel(g_DogTagModelJINRAI, true);
-	//Precaching sounds
-	PrecacheSound(g_AmmoPickupSound, true);
-	PrecacheSound(g_GrenadePickupSound, true);
-	PrecacheSound(g_DogTagPickupSound, true);
-	PrecacheSound(g_DogTagPickupSoundDenied, true);
-	
-	//Adding custom models to forced download
-	AddFileToDownloadsTable("models/ladder/ladder4.mdl");
-	AddFileToDownloadsTable("models/ladder/ladder4.dx80.vtx");
-	AddFileToDownloadsTable("models/ladder/ladder4.dx90.vtx");
-	AddFileToDownloadsTable("models/ladder/ladder4.phy");
-	AddFileToDownloadsTable("models/ladder/ladder4.sw.vtx");
-	AddFileToDownloadsTable("models/ladder/ladder4.vvd");
-	AddFileToDownloadsTable("models/ladder/ladder4.xbox.vtx");
-	AddFileToDownloadsTable("materials/models/ladder/ladder4.vmt");
-	AddFileToDownloadsTable("materials/models/ladder/ladder4.vtf");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.mdl");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.dx80.vtx");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.dx90.vtx");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.phy");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.sw.vtx");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.vvd");
-	AddFileToDownloadsTable("models/logo/jinrai_logo.xbox.vtx");
-	AddFileToDownloadsTable("models/logo/nsf_logo.mdl");
-	AddFileToDownloadsTable("models/logo/nsf_logo.dx80.vtx");
-	AddFileToDownloadsTable("models/logo/nsf_logo.dx90.vtx");
-	AddFileToDownloadsTable("models/logo/nsf_logo.phy");
-	AddFileToDownloadsTable("models/logo/nsf_logo.sw.vtx");
-	AddFileToDownloadsTable("models/logo/nsf_logo.vvd");
-	AddFileToDownloadsTable("models/logo/nsf_logo.xbox.vtx");
-	AddFileToDownloadsTable("materials/models/logo/jinrai_logo.vmt");
-	AddFileToDownloadsTable("materials/models/logo/nsf_logo.vmt");*/		//FIXME: remove this and test model precaching again
-
 }
 
 
@@ -772,7 +734,7 @@ public StartDeathmatch()
 {
 	g_DMStarted = true; 
 	new timeLimit = GetConVarInt(convar_nt_tdm_timelimit);
-	new Handle:hTimeLimit = FindConVar("mp_timelimit");
+	new Handle:hTimeLimit = FindConVar("mp_timelimit");     //mp_timelimit is game time per map in minute
 	#if DEBUG > 1
 	new gamerulesentity;
 	new gamestateoffset;
@@ -1010,11 +972,11 @@ public Action:SpawnDogTag(Float:deathlocation[3], const String:modelname[])
 
 		if((m_iDogTag = CreateEntityByName("prop_dynamic_override")) != -1)
 		{
-			new String:targetname[100];
+			new String:targetname[30];
 
 			if(StrEqual(modelname, g_DogTagModelNSF, false))
 			{
-				Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);   //FIXME! probably won't work
+				Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);
 			}
 			if(StrEqual(modelname, g_DogTagModelJINRAI, false))
 			{
@@ -1034,26 +996,32 @@ public Action:SpawnDogTag(Float:deathlocation[3], const String:modelname[])
 
 			SDKHook(m_iDogTag, SDKHook_StartTouch, OnDogTagTouched);
 
-			
-			new m_iRotator = CreateEntityByName("func_rotating");
-			DispatchKeyValueVector(m_iRotator, "Origin", deathlocation);
-			DispatchKeyValue(m_iRotator, "targetname", targetname);
-			DispatchKeyValue(m_iRotator, "maxspeed", "50"); //100 is good!
-			DispatchKeyValue(m_iRotator, "friction", "0");
-			DispatchKeyValue(m_iRotator, "dmg", "0");
-			DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
-			DispatchKeyValue(m_iRotator, "spawnflags", "64");  //64 default
-			DispatchSpawn(m_iRotator);
-			
-			SetVariantString("!activator");
-			AcceptEntityInput(m_iDogTag, "SetParent", m_iRotator, m_iRotator); 
-			AcceptEntityInput(m_iRotator, "Start");
+			decl m_iRotator;
+			if((m_iRotator = CreateEntityByName("func_rotating")) != -1)
+			{
+				//new m_iRotator = CreateEntityByName("func_rotating");
+				decl String:rotatorName[30];
+				Format(rotatorName, sizeof(rotatorName), "Rotator_%i", m_iRotator);
+				
+				DispatchKeyValueVector(m_iRotator, "Origin", deathlocation);
+				DispatchKeyValue(m_iRotator, "targetname", rotatorName);
+				DispatchKeyValue(m_iRotator, "maxspeed", "50"); //100 is good!
+				DispatchKeyValue(m_iRotator, "friction", "0");
+				DispatchKeyValue(m_iRotator, "dmg", "0");
+				DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
+				DispatchKeyValue(m_iRotator, "spawnflags", "64");  //64 default
+				DispatchSpawn(m_iRotator);
+				
+				SetVariantString("!activator");
+				AcceptEntityInput(m_iDogTag, "SetParent", m_iRotator, m_iRotator); 
+				AcceptEntityInput(m_iRotator, "Start");
 
-			SetEntPropEnt(m_iDogTag, Prop_Send, "m_hEffectEntity", m_iRotator); 
-			
-			DogTagDropTimer[m_iRotator] = CreateTimer(g_DogTagRemoveTime, RemoveDogTag, m_iRotator);
-			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, RemoveDogTag, m_iDogTag); // delaying parent just in case
-			
+				SetEntPropEnt(m_iDogTag, Prop_Send, "m_hEffectEntity", m_iRotator);
+				
+				DogTagDropTimer[m_iRotator] = CreateTimer(g_DogTagRemoveTime, SecureRemove, m_iRotator);
+				return Plugin_Handled;
+			}
+			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, SecureRemove, m_iDogTag); // delaying parent, killing parent just in case?
 		}	
 		return Plugin_Handled;
 	}
@@ -1064,11 +1032,11 @@ public Action:SpawnDogTag(Float:deathlocation[3], const String:modelname[])
 
 		if((m_iDogTag = CreateEntityByName("prop_physics_override")) != -1)
 		{
-			new String:targetname[100];
+			new String:targetname[30];
 
 			if(StrEqual(modelname, g_DogTagModelNSF, false))
 			{
-				Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);   //FIXME! probably won't work
+				Format(targetname, sizeof(targetname), "DogTag_%i", m_iDogTag);
 			}
 			if(StrEqual(modelname, g_DogTagModelJINRAI, false))
 			{
@@ -1089,42 +1057,47 @@ public Action:SpawnDogTag(Float:deathlocation[3], const String:modelname[])
 
 			SDKHook(m_iDogTag, SDKHook_StartTouch, OnDogTagTouched);
 
-			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, RemoveDogTag, m_iDogTag); // delaying parent just in case
-			
+			DogTagDropTimer[m_iDogTag] = CreateTimer(g_DogTagRemoveTime + 0.1, SecureRemove, m_iDogTag); // delaying parent just in case
 		}	
 		return Plugin_Handled;
 	}
 	return Plugin_Handled;
 }
 
-public Action:OnDogTagTouched(propi, client)
+
+
+public Action:OnDogTagTouched(dogtag_entity, client)
 {
-	if(client > 0 && client <= GetMaxClients() && propi > 0 && !IsFakeClient(client) && IsValidEntity(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(propi))
+	if(client > 0 && client <= GetMaxClients() && dogtag_entity > 0 && !IsFakeClient(client) && IsValidEntity(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(dogtag_entity))
 	{
  		// kill the linked func_rotating first
-		new m_iRotator = GetEntPropEnt(propi, Prop_Send, "m_hEffectEntity");
+		RemoveRotatorPre(dogtag_entity);
+
+		/*
+		//obsolete code, moved a function of its own with better checks
+		new m_iRotator = GetEntPropEnt(dogtag_entity, Prop_Send, "m_hEffectEntity");
 		if(m_iRotator > 0 && IsValidEdict(m_iRotator) && DogTagDropTimer[m_iRotator] != INVALID_HANDLE)
-		AcceptEntityInput(m_iRotator, "Kill");
-		
-		#if DEBUG > 0
-		PrintToChatAll("[DEBUG] Killed rotator dogtag %i", m_iRotator);
-		#endif
+		AcceptEntityInput(m_iRotator, "Kill");	
+		*/
 
 		//check team affiliation
 		new playerteam = GetClientTeam(client);
 		
-		if(playerteam == 3) //3 is NSF
+		if(playerteam == TEAM_NSF) //3 is NSF
 		{
 
 			//checking model name, which determines dogtag ownership (bad method, needs improvement)
 			new String:modelname[128];
-			GetEntPropString(propi, Prop_Data, "m_ModelName", modelname, 128);
+			GetEntPropString(dogtag_entity, Prop_Data, "m_ModelName", modelname, 128);
 			
 			if(StrEqual(modelname, g_DogTagModelNSF, false))  // model is NSF, we deny
 			{
-				if(GetTeamScore(playerteam) < 0)
+				if(g_DMStarted)
 				{
-					SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  //adding one point to team score board, because we're nice
+					if(GetTeamScore(playerteam) < 0)
+					{
+						SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  //adding one point to team score board, because we're nice
+					}
 				}
 				
 				if(GetEntProp(client, Prop_Data, "m_iFrags") < 0)  //same, if player score is negative (after a TK), we are nice and increment back up
@@ -1133,7 +1106,7 @@ public Action:OnDogTagTouched(propi, client)
 				
 				// emit sound effect
 				new Float:coords_KilledEnt[3];
-				GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+				GetEntPropVector(dogtag_entity, Prop_Send, "m_vecOrigin", coords_KilledEnt);
 				EmitSoundToAll(g_DogTagPickupSoundDenied, SOUND_FROM_WORLD, SNDCHAN_AUTO, 130, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
 				
 				
@@ -1142,16 +1115,17 @@ public Action:OnDogTagTouched(propi, client)
 				PrintToConsole(client, "Denied a dogtag, coords %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
 				#endif
 				PrintToChat(client, "You denied a Memory Footprint!");
-				KillItemTimer(propi);					 //killing timer handle that was supposed to remove it after a while
-				CreateTimer(0.1, RemoveDogTag, propi);
+				KillItemTimer(dogtag_entity);					 //killing timer handle that was supposed to remove it after a while
+				//DogTagDropTimer[dogtag_entity] = CreateTimer(0.1, SecureRemove, dogtag_entity); //probably a mistake to keep this, prop is already gone when killing rotator!
 				return Plugin_Handled;
 			}
 			
 			if(StrEqual(modelname, g_DogTagModelJINRAI, false))  // model is JINRAI, we add point
 			{
-
-				SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  // adding one point to team score board
-				
+				if(g_DMStarted)
+				{
+					SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  // adding one point to team score board
+				}
 				if(g_KF_Hardcore_enabled)
 				{
 					SetEntProp(client, Prop_Data, "m_iFrags", GetEntProp(client, Prop_Data, "m_iFrags") + 1 ); //adding one point to player (if hardcore mode enabled)
@@ -1159,7 +1133,7 @@ public Action:OnDogTagTouched(propi, client)
 				
 				// emit sound effect
 				new Float:coords_KilledEnt[3];
-				GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+				GetEntPropVector(dogtag_entity, Prop_Send, "m_vecOrigin", coords_KilledEnt);
 				EmitSoundToAll(g_DogTagPickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_HIGH, -1, coords_KilledEnt);
 			
 				#if DEBUG > 0
@@ -1167,24 +1141,27 @@ public Action:OnDogTagTouched(propi, client)
 				PrintToConsole(client, "Picked up a dogtag, coords %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
 				#endif
 				PrintToChat(client, "You picked up a Memory Footprint!");
-				KillItemTimer(propi);
-				CreateTimer(0.1, RemoveDogTag, propi);
+				KillItemTimer(dogtag_entity);
+				//DogTagDropTimer[dogtag_entity] = CreateTimer(0.1, SecureRemove, dogtag_entity);
 				return Plugin_Handled;
 			}
 		}
 		
-		if(playerteam == 2) //2 is JINRAI
+		if(playerteam == TEAM_JINRAI) //2 is JINRAI
 		{
 
 			//checking model name, which determines dogtag ownership (bad method, needs improvement)
 			new String:modelname[128];
-			GetEntPropString(propi, Prop_Data, "m_ModelName", modelname, 128);
+			GetEntPropString(dogtag_entity, Prop_Data, "m_ModelName", modelname, 128);
 			
 			if(StrEqual(modelname, g_DogTagModelJINRAI, false))  // model is JINRAI, we deny
 			{
-				if(GetTeamScore(playerteam) < 0)
+				if(g_DMStarted)
 				{
-					SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  //adding one point to team score board, because we're nice
+					if(GetTeamScore(playerteam) < 0)
+					{
+						SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  //adding one point to team score board, because we're nice
+					}
 				}
 				
 				if(GetEntProp(client, Prop_Data, "m_iFrags") < 0)  //if player score is negative (after a TK), we are kind and increment
@@ -1193,7 +1170,7 @@ public Action:OnDogTagTouched(propi, client)
 				
 				// emit sound effect
 				new Float:coords_KilledEnt[3];
-				GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+				GetEntPropVector(dogtag_entity, Prop_Send, "m_vecOrigin", coords_KilledEnt);
 				EmitSoundToAll(g_DogTagPickupSoundDenied, SOUND_FROM_WORLD, SNDCHAN_AUTO, 130, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
 				
 				#if DEBUG > 0
@@ -1201,15 +1178,18 @@ public Action:OnDogTagTouched(propi, client)
 				PrintToConsole(client, "Denied a dogtag, coords %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
 				#endif
 				PrintToChat(client, "You denied a Memory Footprint!");
-				KillItemTimer(propi);
-				CreateTimer(0.1, RemoveDogTag, propi);
+				KillItemTimer(dogtag_entity);
+				//DogTagDropTimer[dogtag_entity] = CreateTimer(0.1, SecureRemove, dogtag_entity);
 				return Plugin_Handled;
 			}
 			
 			if(StrEqual(modelname, g_DogTagModelNSF, false))  // model is NSF, we add point
 			{
-
-				SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  // adding one point to team score board
+				if(g_DMStarted)
+				{
+					SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  // adding one point to team score board
+				}
+				
 				if(g_KF_Hardcore_enabled)
 				{
 					SetEntProp(client, Prop_Data, "m_iFrags", GetEntProp(client, Prop_Data, "m_iFrags") + 1 ); //adding one point to player (if hardcore mode enabled)
@@ -1217,7 +1197,7 @@ public Action:OnDogTagTouched(propi, client)
 				
 				// emit sound effect
 				new Float:coords_KilledEnt[3];
-				GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+				GetEntPropVector(dogtag_entity, Prop_Send, "m_vecOrigin", coords_KilledEnt);
 				EmitSoundToAll(g_DogTagPickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_HIGH, -1, coords_KilledEnt);
 			
 				#if DEBUG > 0
@@ -1225,24 +1205,24 @@ public Action:OnDogTagTouched(propi, client)
 				PrintToConsole(client, "Picked up a dogtag, coords %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
 				#endif
 				PrintToChat(client, "You picked up a Memory Footprint!");
-				KillItemTimer(propi);
-				CreateTimer(0.1, RemoveDogTag, propi);
+				KillItemTimer(dogtag_entity);
+				//DogTagDropTimer[dogtag_entity] = CreateTimer(0.1, SecureRemove, dogtag_entity);
 				return Plugin_Handled;
 			}
 			
 		}
 		
 	}
-	#if DEBUG > 1
-	if(client > 0 && client <= GetMaxClients() && propi > 0 && IsValidEntity(client) && !IsFakeClient(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(propi))
+	#if DEBUG > 1  //debugging coordinates or rotator location
+	if(client > 0 && client <= GetMaxClients() && dogtag_entity > 0 && IsValidEntity(client) && !IsFakeClient(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(dogtag_entity))
 	{
 		new Float:coords_KilledEnt[3];
-		new m_iRotator = GetEntPropEnt(propi, Prop_Send, "m_hEffectEntity");
+		new m_iRotator = GetEntPropEnt(dogtag_entity, Prop_Send, "m_hEffectEntity");
 		if(m_iRotator >= 0)
 		{
 			GetEntPropVector(m_iRotator, Prop_Send, "m_vecOrigin", coords_KilledEnt);
-			PrintToChatAll("[DEBUG] skipped condition for dogtag? prop = %i %f %f %f", propi, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
-			PrintToServer("[DEBUG] skipped condition for dogtag? prop = %i %f %f %f", propi, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+			PrintToChatAll("[DEBUG] skipped condition for dogtag? prop = %i %f %f %f", dogtag_entity, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
+			PrintToServer("[DEBUG] skipped condition for dogtag? prop = %i %f %f %f", dogtag_entity, coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
 		}
 	}
 	#endif
@@ -1734,59 +1714,9 @@ public SpawnGrenadePack()
 	}
 }
 
-
-/*
-public OnGameFrame()
-{
-	MoveUp();
-}
-
-public MoveUp()
-{
-	for(new i = 0; i <= grenadelines; i++)
-	{
-		if(grenadeprop[i] > 0 && IsValidEntity(grenadeprop[i]))
-		{
-			decl Float:coods_new[3];
-			decl Float:coods_temps[3];
-			GetEntPropVector(grenadeprop[i], Prop_Send, "m_vecOrigin", coods_temps);
-			coods_temps[2] = 60.0;
-			coods_new[0] = coods_temps[0];
-			coods_new[1] = coods_temps[1];
-			coods_new[2] = coods_temps[2];
-			DispatchKeyValueVector(grenadeprop[i], "Origin", coods_new);
-			PrintToServer("done :%d, entity %d %i %i %i", i, grenadeprop[i], coods_new[0], coods_new[1], coods_new[2]);
-		}
-	}
-	
-	//for(new i = 0; i <= grenadelines; i++)
-	//{
-	
-		if(b_movestart == true){
-		new i = 1;
-		new Float:fPos[3];
-		GetEntPropVector(grenadeprop[i], Prop_Send, "m_vecOrigin", fPos);
-		if(bUp) {
-			fPos[2] += 1.0;
-			if(fPos[2] > 30.0) bUp = false;
-		} else {
-			fPos[2] -= 1.0;
-			if(fPos[2] < -30.0) bUp = true;
-		}
-		//DispatchKeyValueVector(grenadeprop[i], "Origin", fPos);
-		ChangeEdictState(grenadeprop[i], GetEntSendPropOffs(grenadeprop[i], "m_vecOrigin", true));
-		PrintToServer("done :%d, entity %d %f %f %f", i, grenadeprop[i], fPos[0], fPos[1], fPos[2]);
-		}
-	//}
-}
-*/
-
-
 public SpawnLadder()
 {
 	new ladderprop[60];
-
-	
 	for(new i; i < ladderlines; i++)
 	{
 		new Float:temp_ladder_coords[3];
@@ -1818,49 +1748,50 @@ public SpawnLadder()
 
 
 
-
 stock ReSpawnAmmo(Float:position[3], const String:model[])
 {
-	decl m_iGift;
+	decl ammoprop;
 
-	if((m_iGift = CreateEntityByName("prop_dynamic_override")) != -1)
+	if((ammoprop = CreateEntityByName("prop_dynamic_override")) != -1)
 	{
-		new String:targetname[100];
-
-		Format(targetname, sizeof(targetname), "ammo_%i", m_iGift);
-
-		DispatchKeyValue(m_iGift, "model", model);
-		//DispatchKeyValue(m_iGift, "physicsmode", "2");
-		//DispatchKeyValue(m_iGift, "massScale", "1.0");
-		DispatchKeyValue(m_iGift, "targetname", targetname);
-
+		decl String:targetname[30];
+		Format(targetname, sizeof(targetname), "AmmoPack_%i", ammoprop);
+		DispatchKeyValue(ammoprop, "targetname", targetname);
 		
-		SetEntProp(m_iGift, Prop_Send, "m_usSolidFlags", 136);  //8 was default 
-		SetEntProp(m_iGift, Prop_Send, "m_CollisionGroup", 11); //1 was default
-		DispatchKeyValueVector(m_iGift, "Origin", position);
-		DispatchSpawn(m_iGift);
+		DispatchKeyValue(ammoprop, "model", model);
+		//DispatchKeyValue(ammoprop, "physicsmode", "2");
+		//DispatchKeyValue(ammoprop, "massScale", "1.0");		
+		SetEntProp(ammoprop, Prop_Send, "m_usSolidFlags", 136);  //8 was default 
+		SetEntProp(ammoprop, Prop_Send, "m_CollisionGroup", 11); //1 was default
+		DispatchKeyValueVector(ammoprop, "Origin", position);
+		DispatchSpawn(ammoprop);
 
-		SDKHook(m_iGift, SDKHook_StartTouch, OnAmmoPackTouched);
+		SDKHook(ammoprop, SDKHook_StartTouch, OnAmmoPackTouched);
 
-		
-		new m_iRotator = CreateEntityByName("func_rotating");
-		DispatchKeyValueVector(m_iRotator, "Origin", position);
-		DispatchKeyValue(m_iRotator, "targetname", targetname);
-		DispatchKeyValue(m_iRotator, "maxspeed", "100"); //100 is good!
-		DispatchKeyValue(m_iRotator, "friction", "0");
-		DispatchKeyValue(m_iRotator, "dmg", "0");
-		DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
-		DispatchKeyValue(m_iRotator, "spawnflags", "64");  //64 default
-		DispatchSpawn(m_iRotator);
-		
-		SetVariantString("!activator");
-		AcceptEntityInput(m_iGift, "SetParent", m_iRotator, m_iRotator);
-		AcceptEntityInput(m_iRotator, "Start");
+		decl m_iRotator;
+		if((m_iRotator = CreateEntityByName("func_rotating")) != -1)
+		{
+			//new m_iRotator = CreateEntityByName("func_rotating");
+			decl String:rotatorName[30];
+			Format(rotatorName, sizeof(rotatorName), "Rotator_%i", m_iRotator);
+			DispatchKeyValue(m_iRotator, "targetname", rotatorName);			
+			
+			DispatchKeyValueVector(m_iRotator, "Origin", position);
+			DispatchKeyValue(m_iRotator, "maxspeed", "100"); //100 is good!
+			DispatchKeyValue(m_iRotator, "friction", "0");
+			DispatchKeyValue(m_iRotator, "dmg", "0");
+			DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
+			DispatchKeyValue(m_iRotator, "spawnflags", "64");  //64 default
+			DispatchSpawn(m_iRotator);
+			
+			SetVariantString("!activator");
+			AcceptEntityInput(ammoprop, "SetParent", m_iRotator, m_iRotator);
+			AcceptEntityInput(m_iRotator, "Start");
 
-		SetEntPropEnt(m_iGift, Prop_Send, "m_hEffectEntity", m_iRotator);
-		
+			SetEntPropEnt(ammoprop, Prop_Send, "m_hEffectEntity", m_iRotator);
+		}
 	}	
-	return m_iGift;
+	return ammoprop;
 }
 
 
@@ -1870,15 +1801,55 @@ stock ReSpawnGrenade(Float:position[3], const String:model[])
 
 	if((m_iGrenade = CreateEntityByName("prop_dynamic_override")) != -1)
 	{
-		new String:targetname[100];
-
-		Format(targetname, sizeof(targetname), "grenade_%i", m_iGrenade);
-
+		decl String:targetname[30];
+		decl String:nadetype[10];
+		
+		new randomcase = UTIL_GetRandomInt(1, 8);	
+		#if DEBUG > 1
+		PrintToServer("[DEBUG] Random grenade case number generated is %d", randomcase);
+		#endif 
+		
+		switch (randomcase)
+		{
+			case 1:
+			{
+				nadetype = "frag";
+			}
+			case 2:
+			{
+				nadetype = "smoke";
+			}
+			case 3:
+			{
+				nadetype = "detpack";
+			}
+			case 4:
+			{
+				nadetype = "frag";
+			}
+			case 5:
+			{
+				nadetype = "smoke";
+			}
+			case 6:
+			{
+				nadetype = "frag";
+			}
+			case 7:
+			{
+				nadetype = "frag";
+			}
+			case 8:
+			{
+				nadetype = "frag";
+			}
+		}
+		Format(targetname, sizeof(targetname), "GrenadePack_%s_%d", nadetype, m_iGrenade);
+		DispatchKeyValue(m_iGrenade, "targetname", targetname);
+		
 		DispatchKeyValue(m_iGrenade, "model", model);
 		//DispatchKeyValue(m_iGrenade, "physicsmode", "2");
 		//DispatchKeyValue(m_iGrenade, "massScale", "1.0");
-		DispatchKeyValue(m_iGrenade, "targetname", targetname);
-
 		DispatchKeyValue(m_iGrenade, "solid", "0");
 		//DispatchKeyValue(m_iGrenade, "spawnflags", "4");
 		//SetEntProp(m_iGrenade, Prop_Data, "m_spawnflags", 4); //works, but no effect?
@@ -1890,23 +1861,27 @@ stock ReSpawnGrenade(Float:position[3], const String:model[])
 
 		SDKHook(m_iGrenade, SDKHook_StartTouch, OnGrenadePackTouched);
 
-		
-		new m_iRotator = CreateEntityByName("func_rotating");
-		DispatchKeyValueVector(m_iRotator, "Origin", position);
-		DispatchKeyValue(m_iRotator, "targetname", targetname);
-		DispatchKeyValue(m_iRotator, "maxspeed", "100");
-		DispatchKeyValue(m_iRotator, "friction", "0");
-		DispatchKeyValue(m_iRotator, "dmg", "0");
-		DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
-		DispatchKeyValue(m_iRotator, "spawnflags", "64");  //64 default = "Not Solid"
-		DispatchSpawn(m_iRotator);
-		
-		SetVariantString("!activator");
-		AcceptEntityInput(m_iGrenade, "SetParent", m_iRotator, m_iRotator);
-		AcceptEntityInput(m_iRotator, "Start");
+		decl m_iRotator;
+		if((m_iRotator = CreateEntityByName("func_rotating")) != -1)
+		{
+			decl String:rotatorName[30];
+			Format(rotatorName, sizeof(rotatorName), "Rotator_%i", m_iRotator);
+			DispatchKeyValue(m_iRotator, "targetname", rotatorName);
+			
+			DispatchKeyValueVector(m_iRotator, "Origin", position);
+			DispatchKeyValue(m_iRotator, "maxspeed", "100");
+			DispatchKeyValue(m_iRotator, "friction", "0");
+			DispatchKeyValue(m_iRotator, "dmg", "0");
+			DispatchKeyValue(m_iRotator, "solid", "0");  //0 default
+			DispatchKeyValue(m_iRotator, "spawnflags", "64");  //64 default = "Not Solid"
+			DispatchSpawn(m_iRotator);
+			
+			SetVariantString("!activator");
+			AcceptEntityInput(m_iGrenade, "SetParent", m_iRotator, m_iRotator);
+			AcceptEntityInput(m_iRotator, "Start");
 
-		SetEntPropEnt(m_iGrenade, Prop_Send, "m_hEffectEntity", m_iRotator);
-		
+			SetEntPropEnt(m_iGrenade, Prop_Send, "m_hEffectEntity", m_iRotator);
+		}
 	}
 	return m_iGrenade;
 }
@@ -2085,12 +2060,11 @@ public Action:OnAmmoPackTouched(propi, client)
 			
 		}
 
-		new m_iRotator = GetEntPropEnt(propi, Prop_Send, "m_hEffectEntity");
-		if(m_iRotator && IsValidEdict(m_iRotator))
-		AcceptEntityInput(m_iRotator, "Kill");  			// need to kill the func_rotating first otherwise the origin coordinates will be 0,0,0 (local coordinates versus global?)
+		// need to kill the func_rotating first otherwise the origin coordinates will be 0,0,0 (local coordinates versus global?)
+		RemoveRotatorPre(propi);	
 	
-		GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
-		
+	
+		GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt); //getting coordinates of the prop in order to respawn it at the same location later, and emitting sound there too
 		if(ammo_coords_cursor >= sizeof(ammocoords_array))
 		{
 			ammo_coords_cursor = 0;		
@@ -2113,16 +2087,13 @@ public Action:OnAmmoPackTouched(propi, client)
 		// OR Player.PickupWeapon instead of HL2Player.PickupWeapon (NT specific) or BaseCombatCharacter.AmmoPickup because same file pointed at
 		//EmitGameSound*() don't work in Neotokyo because PrecacheScriptSound() and GetGameSoundParams() crash NT server
 		
-		
 		CreateTimer(g_AmmoRespawnTime, timer_RespawnAmmoPack, ammo_coords_cursor);
 		
 		#if DEBUG > 1
 		PrintToChatAll("refilled done");
-		#endif
+		#endif 
 
-	
-		CreateTimer(0.0, RemoveEntity, propi);
-		//AcceptEntityInput(propi, "kill");
+		//CreateTimer(0.0, SecureRemove, propi); //not needed anymore, prop is killed through rotator!
 		ammo_coords_cursor++;
 		return Plugin_Handled;
 	}
@@ -2215,9 +2186,10 @@ public Action:OnGrenadePackTouched(propi, client)
 
 	if(client > 0 && client <= GetMaxClients() && propi > 0 && !IsFakeClient(client) && IsValidEntity(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(propi))
 	{
-		
 		new String:classname[24];
-		new bool:hasdetpack = false;		
+		new bool:hasDetpack = false;
+		new bool:hasSmokeGrenade = false;
+		new bool:hasFragGrenade = false;
 
 		for(new weapon = 0; weapon <= 5; weapon++) 		// NT has only five weapon slots, loop trough them and remove all valid weapons
 		{
@@ -2234,109 +2206,161 @@ public Action:OnGrenadePackTouched(propi, client)
 				continue; // Skip if it's knife
 			
 			if(StrEqual(classname, "weapon_remotedet"))
+			{
 				#if DEBUG > 1
-				PrintToChat(client, "You already have a detpack!");
-				#endif 
-				hasdetpack = true;
+				PrintToChat(client, "[DEBUG] We already have a detpack!");
+				#endif
+				hasDetpack = true;
 				continue;
+			}
+			if(StrEqual(classname, "weapon_grenade"))
+			{
+				#if DEBUG > 1
+				PrintToChat(client, "[DEBUG] We already have a grenade!");
+				#endif
+				hasFragGrenade = true;
+				continue;
+			}
+			if(StrEqual(classname, "weapon_smokegrenade"))
+			{
+				#if DEBUG > 1
+				PrintToChat(client, "[DEBUG] We already have a smoke grenade!");
+				#endif
+				hasSmokeGrenade = true;
+				continue;
+			}
 		}
-		new randomcase = UTIL_GetRandomInt(1, 8);
 		
-		#if DEBUG > 1
-		PrintToChatAll("random grenade case is %d", randomcase);
-		#endif
 		
-		switch (randomcase)
+		decl String:EntName[30];
+		new NadeType;
+		GetEntPropString(propi, Prop_Data, "m_iName", EntName, sizeof(EntName));
+		if(StrContains(EntName, "frag", false) > -1 )
 		{
-			case 1:
-			{
-				GivePlayerItem(client, "weapon_grenade");
-				PrintToChat(client, "You picked up a grenade!");
-			}
-			case 2:
-			{
-				GivePlayerItem(client, "weapon_smokegrenade");
-				PrintToChat(client, "You picked up two smoke grenades!");
-			}
-			case 3:
-			{
-				if(hasdetpack == false)
-				{
-					GivePlayerItem(client, "weapon_smokegrenade");
-					PrintToChat(client, "You picked up two smoke grenades!");
-				}
-				if(hasdetpack == true)
-				{
-					GivePlayerItem(client, "weapon_remotedet");
-					PrintToChat(client, "You picked up a remote detpack!");
-				}
-			}
-			case 4:
-			{
-				GivePlayerItem(client, "weapon_grenade");
-				PrintToChat(client, "You picked up a grenade!");
-				//break;
-			}
-			case 5:
-			{
-				GivePlayerItem(client, "weapon_smokegrenade");
-				PrintToChat(client, "You picked up two smoke grenades!");
-			}
-			case 6:
-			{				
-				GivePlayerItem(client, "weapon_grenade");
-				PrintToChat(client, "You picked up a grenade!");
-			}
-			case 7:
-			{
-				GivePlayerItem(client, "weapon_grenade");
-				PrintToChat(client, "You picked up a grenade!");
-			}
-			case 8:
-			{
-				GivePlayerItem(client, "weapon_grenade");
-				PrintToChat(client, "You picked up a grenade!");
-			}
+			NadeType = 1;
 		}
-
-		new m_iRotator = GetEntPropEnt(propi, Prop_Send, "m_hEffectEntity");
-		if(m_iRotator && IsValidEdict(m_iRotator))
-		AcceptEntityInput(m_iRotator, "Kill");  			// need to kill the func_rotating first otherwise the origin coordinates will be 0,0,0 (local coordinates versus global?)
-
-		new Float:coords_KilledEnt[3];	
-		GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
-		
-		if(grenade_coords_cursor >= sizeof(grenadecoords_array))
+		if(StrContains(EntName, "smoke", false) > -1 )
 		{
-			grenade_coords_cursor = 0;		
+			NadeType = 2;
+		}
+		if(StrContains(EntName, "detpack", false) > -1 )
+		{
+			NadeType = 3;
+		}
+
+
+		new bool:KillBox = false;
+		
+		if(NadeType == 1)
+		{
+			if(hasFragGrenade)
+			{
+				AddWeaponAmmo(client, "weapon_grenade", 1);
+				PrintToChat(client, "You picked up an extra frag grenade!");
+				KillBox = true; // we can kill the prop now
+			}
+			else
+			{
+				if(SpawnWeaponClassName(client, "weapon_grenade"))
+					KillBox = true;
+			}
+		}
+		if(NadeType == 2)
+		{
+			if(hasSmokeGrenade)
+			{
+				AddWeaponAmmo(client, "weapon_smokegrenade", 2);
+				PrintToChat(client, "You picked up two extra smoke grenades!");
+				KillBox = true;
+			}
+			else
+			{
+				if(SpawnWeaponClassName(client, "weapon_smokegrenade"))
+					KillBox = true; 
+			}
+		}
+		if(NadeType == 3)
+		{
+			if(hasDetpack)
+			{
+				new randomtype = UTIL_GetRandomInt(0, 100); // if we already have one detpack in inventory, we reroll
+				if(randomtype < 60)
+				{
+					if(hasFragGrenade)
+					{
+						AddWeaponAmmo(client, "weapon_grenade", 1);
+						PrintToChat(client, "You picked up an extra frag grenade!");
+						KillBox = true;
+					}
+					else
+					{
+						if(SpawnWeaponClassName(client, "weapon_grenade"))
+						KillBox = true;
+					}
+				}
+				else
+				{
+					if(hasSmokeGrenade)
+					{
+						AddWeaponAmmo(client, "weapon_smokegrenade", 2);
+						PrintToChat(client, "You picked up two extra smoke grenades!");
+						KillBox = true;
+					}
+					else
+					{
+						if(SpawnWeaponClassName(client, "weapon_smokegrenade"))
+						KillBox = true;
+					}
+				}
+			}
+			else
+			{
+				if(SpawnWeaponClassName(client, "weapon_remotedet"))
+					KillBox = true;
+			}
 		}
 		
-		grenadecoords_array[grenade_coords_cursor][0] = coords_KilledEnt[0];
-		grenadecoords_array[grenade_coords_cursor][1] = coords_KilledEnt[1];
-		grenadecoords_array[grenade_coords_cursor][2] = coords_KilledEnt[2];
+		
+		
+		if(KillBox)
+		{
+			// need to kill the func_rotating first otherwise the origin coordinates will be 0,0,0 (local coordinates versus global?)
+			RemoveRotatorPre(propi);			
 
-		#if DEBUG > 1
-		PrintToServer("origin of killed grenadepack: %f %f %f grenade_coords_cursor = %i", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2], grenade_coords_cursor);
-		PrintToServer("origin new grenadepack to spawn: %f %f %f", grenadecoords_array[grenade_coords_cursor][0], grenadecoords_array[grenade_coords_cursor][1], grenadecoords_array[grenade_coords_cursor][2]);
-		#endif
+			new Float:coords_KilledEnt[3];	
+			GetEntPropVector(propi, Prop_Send, "m_vecOrigin", coords_KilledEnt);
+			if(grenade_coords_cursor >= sizeof(grenadecoords_array))
+			{
+				grenade_coords_cursor = 0;		
+			}
+			
+			grenadecoords_array[grenade_coords_cursor][0] = coords_KilledEnt[0];
+			grenadecoords_array[grenade_coords_cursor][1] = coords_KilledEnt[1];
+			grenadecoords_array[grenade_coords_cursor][2] = coords_KilledEnt[2];
 
-		//EmitSoundToClient(client, "ammo_pickup.wav", SOUND_FROM_PLAYER,SNDCHAN_AUTO,SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+			#if DEBUG > 1
+			PrintToServer("origin of killed grenadepack: %f %f %f grenade_coords_cursor = %i", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2], grenade_coords_cursor);
+			PrintToServer("origin new grenadepack to spawn: %f %f %f", grenadecoords_array[grenade_coords_cursor][0], grenadecoords_array[grenade_coords_cursor][1], grenadecoords_array[grenade_coords_cursor][2]);
+			#endif
+
+			//EmitSoundToClient(client, "ammo_pickup.wav", SOUND_FROM_PLAYER,SNDCHAN_AUTO,SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+			
+			EmitSoundToAll(g_GrenadePickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
+			
+			//ClientCommand(client, "playgamesound HL2Player.PickupWeapon"); //this works if all else fails, only to player though
+			// OR Player.PickupWeapon instead of HL2Player.PickupWeapon (NT specific) or BaseCombatCharacter.AmmoPickup because same file pointed at
+			//EmitGameSound*() don't work in Neotokyo because PrecacheScriptSound() and GetGameSoundParams() crash NT server
+			
+			#if DEBUG > 1
+			PrintToChatAll("Picked up grenade pack");		
+			#endif
+			
+			CreateTimer(g_GrenadeRespawnTime, timer_RespawnGrenadePack, grenade_coords_cursor);  //respawns after x secs
+			//CreateTimer(0.0, SecureRemove, propi); //not needed anymore, prop is killed through rotator
 		
-		EmitSoundToAll(g_GrenadePickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
-		
-		//ClientCommand(client, "playgamesound HL2Player.PickupWeapon"); //this works if all else fails, only to player though
-		// OR Player.PickupWeapon instead of HL2Player.PickupWeapon (NT specific) or BaseCombatCharacter.AmmoPickup because same file pointed at
-		//EmitGameSound*() don't work in Neotokyo because PrecacheScriptSound() and GetGameSoundParams() crash NT server
-		
-		#if DEBUG > 1
-		PrintToChatAll("Picked up grenade pack");		
-		#endif
-		
-		CreateTimer(g_GrenadeRespawnTime, timer_RespawnGrenadePack, grenade_coords_cursor);  //respawns after x secs
-		CreateTimer(0.0, RemoveEntity, propi);
-		//AcceptEntityInput(propi, "kill");
-	
-		grenade_coords_cursor++;
+			grenade_coords_cursor++;
+			return Plugin_Handled;
+		}
 		return Plugin_Handled;
 	}
 	#if DEBUG > 1
@@ -2352,45 +2376,164 @@ public Action:OnGrenadePackTouched(propi, client)
 	
 	return Plugin_Handled;
 }
+ 
+
+public bool:SpawnWeaponClassName(client, const String:weaponclassname[])
+{
+	decl Float:coords[3];
+	decl Float:playercoords[3];
+	new weaponindex = CreateEntityByName(weaponclassname);
+	if(weaponindex > -1)
+	{
+		GetEntPropVector(weaponindex, Prop_Send, "m_vecOrigin", coords);
+		GetEntPropVector(client, Prop_Send, "m_vecOrigin", playercoords);
+		coords[0] = playercoords[0];
+		coords[1] = playercoords[1];
+		coords[2] = playercoords[2] + 33.0;
+		DispatchKeyValueVector(weaponindex, "Origin", coords);
+		DispatchSpawn(weaponindex);
+		
+		if(StrEqual(weaponclassname, "weapon_grenade"))
+			PrintToChat(client, "You picked up a grenade!");
+		if(StrEqual(weaponclassname, "weapon_smokegrenade"))
+			PrintToChat(client, "You picked up two smoke grenade!");
+		if(StrEqual(weaponclassname, "weapon_remotedet"))
+			PrintToChat(client, "You picked up a remote detpack!");
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+public Action:AddWeaponAmmo(client, const String:weaponclassname[], increment)
+{
+	new ammo;
+	Client_GetWeaponPlayerAmmo(client, weaponclassname, ammo);
+	ammo += increment;
+	Client_SetWeaponPlayerAmmo(client, weaponclassname, ammo);	//thanks SMLIB
+}
+
+
+
+
+
+
+stock RemoveRotatorPre(propindex)
+{
+	new m_iRotator = GetEntPropEnt(propindex, Prop_Send, "m_hEffectEntity");
+	decl String:EntName[30];
+	
+	if(m_iRotator > 0)
+	{
+		GetEntPropString(m_iRotator, Prop_Data, "m_iName", EntName, sizeof(EntName));
+		if(StrContains(EntName, "Rotator", false) > -1 )
+		{
+			#if DEBUG > 0
+			PrintToServer("[DEBUG] It's a rotator, pre! m_iName found: %s", EntName);
+			#endif
+			// if the timer exists to remove it after a while, kill it, because we're removing prematurely here
+			if(DogTagDropTimer[m_iRotator] != INVALID_HANDLE) 
+			{
+				KillItemTimer(m_iRotator);
+			}
+			RemoveEntity(m_iRotator, false); // false to not kill the hierarchy
+		}
+		else
+		{
+			#if DEBUG > 0
+			PrintToServer("[DEBUG] no Rotator in name, pre! m_iName found: %s", EntName);
+			#endif
+		}
+	}
+}
 
 stock KillItemTimer(entity)   // do as the healthkit plugin does, place this function in all ontouch, right before killing the prop
 {
 	if(DogTagDropTimer[entity] != INVALID_HANDLE)
 	{
-		CloseHandle(DogTagDropTimer[entity]);
+		//CloseHandle(DogTagDropTimer[entity]);
+		KillTimer(DogTagDropTimer[entity]);
 	}
 	DogTagDropTimer[entity] = INVALID_HANDLE;
 }
 
-public Action:RemoveDogTag(Handle:timer, any:entity)  // place in all timers that remove after a while
+
+
+public Action:SecureRemove(Handle:timer, entity)  // place in all timers that remove after a while
 {
+	#if DEBUG > 0
+	PrintToServer("[DEBUG] SecureRemove() triggered");
+	#endif
 	DogTagDropTimer[entity] = INVALID_HANDLE;
 	
-	new String:EntName[256];
+	new String:EntName[30];
 	//Entity_GetName(entity, EntName, sizeof(EntName)); //smlib
 	if(IsValidEntity(entity))
 	{
-		if(GetEntPropString(entity, Prop_Data, "m_iName", EntName, sizeof(EntName)))
-		{
-			if(StrContains(EntName, "DogTag") || StrContains(EntName, "Rotator") || StrContains(EntName, "AmmoPack") || StrContains(EntName, "GrenadePack"))
+		GetEntPropString(entity, Prop_Data, "m_iName", EntName, sizeof(EntName));
+		#if DEBUG > 0
+		PrintToServer("[DEBUG] About to Secure delete entity %d, m_iName: %s", entity, EntName);
+		#endif
+		//if(GetEntPropString(entity, Prop_Data, "m_iName", EntName, sizeof(EntName)))
+		//{
+			if((StrContains(EntName, "DogTag") > -1) || (StrContains(EntName, "AmmoPack") > -1) || (StrContains(EntName, "GrenadePack") > -1) )
 			{
 				if(entity > -1)
-					AcceptEntityInput(entity, "KillHierarchy");
+					#if DEBUG > 0
+					PrintToServer("[DEBUG] Not rotator, Killing but NOT hierarchy. m_iName found: %s", EntName);
+					#endif
+					RemoveEntity(entity, false);
 			}
-		}
+			else if((StrContains(EntName, "Rotator") > -1) )
+			{
+				if(entity > -1)
+					#if DEBUG > 0
+					PrintToServer("[DEBUG] rotator found, Killing HIERACHY. m_iName found: %s", EntName);
+					#endif
+					RemoveEntity(entity, true);
+			}
+		//}
 	}
 }
 
 
-public Action:RemoveEntity(Handle:timer, any:entity)  // place in all timers that remove after a while
+stock RemoveEntity(entityindex, killHierarchy=false)
 {
-	DogTagDropTimer[entity] = INVALID_HANDLE;
-	if(IsValidEntity(entity))
-		AcceptEntityInput(entity, "Kill");
-		#if DEBUG > 1
-		PrintToServer("Removed Entity: %d", entity);
+	if(DogTagDropTimer[entityindex] != INVALID_HANDLE)
+		DogTagDropTimer[entityindex] = INVALID_HANDLE;
+	
+	if(IsValidEntity(entityindex))
+	{
+		if(killHierarchy)
+		{
+			AcceptEntityInput(entityindex, "KillHierarchy");
+			#if DEBUG > 0
+			PrintToServer("[DEBUG] Removed Entity's hierarchy: %d", entityindex);
+			#endif
+		}
+		else
+		{
+			AcceptEntityInput(entityindex, "Kill");
+			#if DEBUG > 0
+			PrintToServer("[DEBUG] Removed Entity: %d", entityindex);
+			#endif
+		}
+	}
+	else
+	{
+		#if DEBUG > 0
+		PrintToServer("[DEBUG] Not a valid entity passed for removal!");
 		#endif
-	return Plugin_Handled;
+	}
+}
+
+
+
+
+public Action:ResetDisplayBool(Handle:timer, client) //resetting the bool to display message again
+{
+	g_bDisplay[client] = false;
 }
 
 public Action:timer_RespawnAmmoPack(Handle:timer, cursor_position)
