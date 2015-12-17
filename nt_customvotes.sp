@@ -1,10 +1,13 @@
+#pragma semicolon 1
 
-/*=========================
-VOTE from funvotes
-=========================*/
+#include <sourcemod>
+#include <sdktools>
+
+#undef REQUIRE_PLUGIN
+#include <adminmenu> 
+
 #define VOTE_NO "###no###"
 #define VOTE_YES "###yes###"
-
 
 Menu g_hVoteMenu = null;
 
@@ -36,10 +39,17 @@ new voteType:g_voteType = voteType:neorestart;
 new String:g_voteInfo[3][65];	/* Holds the target's name, authid, and IP */
 
 TopMenu hTopMenu;
-/*=========================
-		VOTE
-=========================*/
-void InitVoteCvars()
+
+public Plugin:myinfo =
+{
+	name = "Neotokyo custom votes",
+	author = "AlliedModders LLC, modified by glub",
+	description = "Neotokyo custom votes",
+	version = "0.2",
+	url = "https://github.com/glubsy"
+};
+
+public OnPluginStart()
 {
 	RegAdminCmd("sm_voterestart", Command_VoteNeoRestart, 0, "sm_voterestart");
 	RegAdminCmd("sm_votetdm", Command_VoteTDM, 0, "sm_votetdm");
@@ -73,7 +83,6 @@ void InitVoteCvars()
 }
 
 
-
 public Action:CheckLateCvars(Handle:timer)
 {
 	g_Cvar_TDM = FindConVar("nt_tdm_enabled");
@@ -82,6 +91,26 @@ public Action:CheckLateCvars(Handle:timer)
 	g_Cvar_KF_Hardcore = FindConVar("nt_tdm_kf_hardcore_enabled");
 	g_Cvar_tribestokyo = FindConVar("sm_nt_tribes");
 }
+
+
+public OnClientPostAdminCheck(client)
+{
+	decl String:currentMap[64];
+	GetCurrentMap(currentMap, 64);
+
+	if(StrEqual(currentMap, "nt_vtol_ctg") || StrEqual(currentMap, "nt_isolation_ctg"))
+	{
+		CreateTimer(60.0, DisplayNotificationTribesTokyo, client);
+	}
+}
+
+public Action:DisplayNotificationTribesTokyo(Handle:Timer, client)
+{
+	if(client > 0 && IsClientInGame(client) && !IsFakeClient(client))
+	PrintToChat(client, "[SM] You can enable TribesTokyo game mode on this map with !VoteTribesTokyo");	
+}
+
+
 
 public OnAdminMenuReady(Handle aTopMenu)
 {
