@@ -22,28 +22,29 @@ Changelog
 		start DM gametype 1 to 0 and gamestate 1 to 1 (DM works!)
 		stop DM again: gametype 0 to 1 and gamestate 1 to 1 (back to CTG!) -glub
 	0.1.2
-		*Added random player spawns -glub
+		* Added random player spawns -glub
 	0.1.3
-		*Added random ammopacks spawns -glub
+		* Added random ammopacks spawns -glub
 	0.1.4
-		*Added grenade packs spawns -glub
+		* Added grenade packs spawns -glub
 	0.1.5
-		*Added ladder spawns -glub
+		* Added ladder spawns -glub
 	0.1.6
-		*Added dogtags / Kill Confirmed game mode -glub
+		* Added dogtags / Kill Confirmed game mode -glub
 	0.1.7
-		*Added votes -glub
+		* Added votes -glub
 	0.1.8
-		*Moved votes to its own plugin, nt_customvotes
-		*Fixed grenades spawning below players when created
-		*Added incremental grenade refill (unlimited grenades)
-		*Fixed missing weapons due to lack of checks on kill timers
-
+		* Moved votes to its own plugin, nt_customvotes
+		* Fixed grenades spawning below players when created
+		* Added incremental grenade refill (unlimited grenades)
+		* Fixed missing weapons due to lack of checks on kill timers
+	0.1.9
+		* Added removing of unused projectiles on disconnect/death
+		* Added dumb announcer as a joke
 		
-		TODO:	fix end of round displaying proper banner
+		TODO:	fix end of round displaying proper banner before map change
 		TODO:	fix map changing after votetdm (probably related to mp_timelimit)
-		TODO:	clear unused detapacks after a while with timer (check for no ownership)
-		TODO:	respawn props on round restart (in case someone does neo_restart_this)
+		TODO:	respawn ammo boxes on round restart (in case someone does neo_restart_this)
 		TODO:	rendermode for spawn protected players (transparency?)
 		TODO:	parse an autostart file containing a selection of maps (fopen() + StrContains())
 				instead of hardcoding them (must parse it first).
@@ -81,6 +82,7 @@ new Handle:convar_nt_tdm_ammo_respawn_time = INVALID_HANDLE;
 new Handle:convar_nt_tdm_grenade_respawn_time = INVALID_HANDLE;
 new Handle:convar_nt_dogtag_remove_timer = INVALID_HANDLE;
 ConVar convar_nt_tdm_kf_hardcore_enabled;
+new Handle:convar_nt_dogtag_announcer = INVALID_HANDLE;
 
 new bool:g_DMStarted = false;
 new bool:g_KF_enabled = false;
@@ -154,10 +156,29 @@ new const String:g_DogTagModelJINRAI[] = "models/logo/jinrai_logo.mdl";
 new const String:g_DogTagModelNSFphysics[] = "models/logo/nsf_logo2.mdl";
 new const String:g_DogTagModelJINRAIphysics[] = "models/logo/jinrai_logo2.mdl";
 
-new const String:g_DogTagPickupSound[] = "common/warning.wav";
-new const String:g_DogTagPickupSoundDenied[] = "buttons/combine_button5.wav";
+new const String:g_DogTagPickupSound[][] =
+{
+	"common/warning.wav",
+	"custom/dt_pickedup_prod.mp3"
+};
 
-new bool:g_bDisplay[MAXPLAYERS+1] = false;
+new const String:g_DogTagPickupSoundDenied[][] =
+{
+	"buttons/combine_button5.wav",
+	"custom/dt_denied_prod.mp3"
+};
+new Handle:g_SoundTimer[MAXPLAYERS+1] = INVALID_HANDLE;
+new Handle:g_SoundTimerOverride[MAXPLAYERS+1] = INVALID_HANDLE;
+
+new Handle:g_TimerRemoveProjectiles[MAXPLAYERS+1] = INVALID_HANDLE;
+new g_thrownDetpack[MAXPLAYERS+1][30];
+new g_thrownDetpack_cursor[30];
+
+
+new bool:g_DogTagAnnouncer = false;
+new bool:g_AnnouncerDisabledforClient[MAXPLAYERS+1] = false;
+new bool:g_AnnouncerOverrideforClient[MAXPLAYERS+1] = false;
+
 
 /*
 new const String:gSpawnSounds[][] =
@@ -180,7 +201,6 @@ new const String:g_ConflictingPlugins[][] =
 };
 
 
-
 public OnPluginStart()
 {
 	//convar_nt_tdm_version = CreateConVar("nt_tdm_version", PLUGIN_VERSION, "NEOTOKYO Team Deathmatch.", FCVAR_PLUGIN | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
@@ -193,6 +213,7 @@ public OnPluginStart()
 	convar_nt_tdm_ammo_respawn_time = CreateConVar("nt_tdm_ammo_respawn_time", "45.0", "Time in seconds before an ammo pack will respawn", FCVAR_PLUGIN);
 	convar_nt_tdm_grenade_respawn_time = CreateConVar("nt_tdm_grenade_respawn_time", "60.0", "Time in seconds before a grenade pack will respawn", FCVAR_PLUGIN);
 	convar_nt_dogtag_remove_timer = CreateConVar("nt_dogtag_remove_time", "40.0", "Time in seconds before a dogtag disappears", FCVAR_PLUGIN);
+	convar_nt_dogtag_announcer = CreateConVar("nt_dogtag_announcer", "1", "whether or not to enabler the dumb announcer", FCVAR_PLUGIN);
 	
 	AutoExecConfig(true);
 	
@@ -201,6 +222,10 @@ public OnPluginStart()
 	RegAdminCmd("sm_randomplayerspawns", Command_Randomplayerspawns, ADMFLAG_KICK, "Enables or disables random player spawns.");
 	RegAdminCmd("sm_tdm_timelimit", Command_TDM_Timelimit, ADMFLAG_KICK, "Sets team deathmatch timelimit.");
 	RegAdminCmd("sm_kf_hardcore_enable", Command_KF_Hardcore_Enable, ADMFLAG_KICK, "Enables or disables gaining points ONLY by pickup up dogtags.");
+	RegAdminCmd("sm_kf_reload_kvfile", Command_KF_Reload_kvfile, ADMFLAG_KICK, "Reloads KeyValue files for coordinates.");
+	RegAdminCmd("sm_announcer_enabled", Command_AnnouncerEnabled, ADMFLAG_KICK, "Enables or disables dumb announcer for all.");
+	RegConsoleCmd("sm_announcer", Command_ToggleAnnouncer, "Toggles the announcer on/off.");
+	
 	
 	#if DEBUG > 1
 	RegAdminCmd("sm_forcestartdm", CommandRestartDeatchmatch, ADMFLAG_SLAY, "forces deathmatch-debug command for testing");
@@ -217,25 +242,22 @@ public OnPluginStart()
 	HookConVarChange(convar_nt_tdm_timelimit, OnTimeLimitChanged);
 	HookConVarChange(convar_nt_tdm_enabled, OnConfigsExecutedHook);  //added glub
 	HookConVarChange(convar_nt_tdm_randomplayerspawns, OnChangePlayerRandomSpawnsCvar);
-	HookConVarChange(convar_nt_tdm_ammo_respawn_time, OnChangeAmmoRespawnTimeCvar);
-	HookConVarChange(convar_nt_tdm_grenade_respawn_time, OnChangeGrenadeRespawnTimeCvar);
+	HookConVarChange(convar_nt_tdm_ammo_respawn_time, OnChangedCvar);
+	HookConVarChange(convar_nt_tdm_grenade_respawn_time, OnChangedCvar);
 	HookConVarChange(convar_nt_tdm_kf_enabled, OnChangeKFEnabledCvar);
 	HookConVarChange(convar_nt_tdm_kf_hardcore_enabled, OnChangeKF_Hardcore_EnabledCvar);
-	HookConVarChange(convar_nt_dogtag_remove_timer, OnChangeDogTagTimer);
-	
-	
+	HookConVarChange(convar_nt_dogtag_remove_timer, OnChangedCvar);
+	HookConVarChange(convar_nt_dogtag_announcer, OnChangedCvar);
 	
 	HookEvent("player_spawn", OnPlayerSpawn);
 	HookEvent("player_hurt", OnPlayerHurt);
 	HookEvent("player_death", OnPlayerDeath);
+	HookEvent("player_disconnect", OnPlayerDisconnected);
 	
 	
 	// Get offsets
 	gOffsetMyWeapons = FindSendPropInfo("CBasePlayer", "m_hMyWeapons");
 	//gOffsetAmmo = FindSendPropInfo("CBasePlayer", "m_iAmmo");
-	
-/*	for(new snd = 0; snd < sizeof(gSpawnSounds); snd++)
-	PrecacheSound(gSpawnSounds[snd]);    //precaching sound effect for spawn*/
 
 	// init random number generator
 	SetRandomSeed(RoundToFloor(GetEngineTime()));
@@ -267,7 +289,6 @@ public OnConfigsExecuted()
 	g_DogTagRemoveTime = GetConVarFloat(convar_nt_dogtag_remove_timer);
 	
 	CheckConvarsOnMapLoaded();
-	
 
 	//Precaching models
 	PrecacheModel(g_LadderModel, true);
@@ -278,8 +299,23 @@ public OnConfigsExecuted()
 	//Precaching sounds
 	PrecacheSound(g_AmmoPickupSound, true);
 	PrecacheSound(g_GrenadePickupSound, true);
-	PrecacheSound(g_DogTagPickupSound, true);
-	PrecacheSound(g_DogTagPickupSoundDenied, true);
+	
+	//precaching sound effects
+	for(new snd = 0; snd < sizeof(g_DogTagPickupSound); snd++)
+	{
+		PrecacheSound(g_DogTagPickupSound[snd], true);
+		decl String:buffer[120];
+		Format(buffer, sizeof(buffer), "sound/%s", g_DogTagPickupSound[snd]);
+		AddFileToDownloadsTable(buffer);
+	}
+
+	for(new snd = 0; snd < sizeof(g_DogTagPickupSoundDenied); snd++)
+	{
+		PrecacheSound(g_DogTagPickupSoundDenied[snd], true);
+		decl String:buffer[120];
+		Format(buffer, sizeof(buffer), "sound/%s", g_DogTagPickupSoundDenied[snd]);
+		AddFileToDownloadsTable(buffer);
+	}
 	
 	//Adding custom models to forced download
 	AddFileToDownloadsTable("models/ladder/ladder4.mdl");
@@ -332,6 +368,12 @@ public CheckConvarsOnMapLoaded()
 		SetConVarInt(convar_nt_tdm_enabled, 0);
 }
 
+public Action:Command_KF_Reload_kvfile(client, args)
+{
+	InitArray();
+}
+
+
 public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	if (!GetConVarBool(convar_nt_tdm_enabled))   // Cvar is set to 0, we are stopping
@@ -341,7 +383,7 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		PrintToChatAll("========================================");
 		PrintToChatAll("                  Team DeathMatch ended!");
 		PrintToChatAll("========================================");
-		PrintToServer("Team DeathMatch stopped!");
+		PrintToServer("[TDM] Team DeathMatch stopped!");
 		ServerCommand("neo_restart_this 1");
 
 		ReloadConflictingPlugins();
@@ -361,7 +403,7 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		PrintToChatAll("========================================");
 		PrintToChatAll("                Team DeathMatch started!");
 		PrintToChatAll("========================================");
-		PrintToServer("Team DeathMatch started!");
+		PrintToServer("[TDM] Team DeathMatch started!");
 		//GameRules_SetPropFloat("m_fRoundTimeLeft", 10.0);    
 		//GameRules_SetProp("m_iGameState", 1);    // if gamestate change from 0 to 1 and neo_restart_this 1, CTG back to normal, no respawn
 		//ServerCommand("neo_restart_this 1");
@@ -372,6 +414,7 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		
 		SetConVarInt(convar_nt_tdm_kf_enabled, 1); //we start KF enabled by default with TDM for now. FIXME: remove later.
 		//SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 1); //if we want hardcore by default
+		PrintToServer("[TDM] you can disable the dumb announcer with !announcer");
 	}
 } 
 
@@ -399,6 +442,14 @@ void ReloadConflictingPlugins()
 	}
 }
 
+public OnClientPutInServer(client)
+{
+	g_AnnouncerDisabledforClient[client] = false;
+	g_AnnouncerOverrideforClient[client] = false;
+}
+
+
+
 
 public OnChangePlayerRandomSpawnsCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
@@ -414,12 +465,96 @@ public OnChangePlayerRandomSpawnsCvar(Handle:cvar, const String:oldVal[], const 
 	}
 }
 
-public OnChangeAmmoRespawnTimeCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
+public OnChangedCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	g_AmmoRespawnTime = GetConVarFloat(convar_nt_tdm_ammo_respawn_time);
+	if(cvar == convar_nt_tdm_ammo_respawn_time)
+	{
+		g_AmmoRespawnTime = GetConVarFloat(convar_nt_tdm_ammo_respawn_time);
+	}
+	if(cvar == convar_nt_tdm_grenade_respawn_time)
+	{
+		g_GrenadeRespawnTime = GetConVarFloat(convar_nt_tdm_grenade_respawn_time);
+	}
+	if(cvar == convar_nt_dogtag_remove_timer)
+	{
+		g_DogTagRemoveTime = GetConVarFloat(convar_nt_dogtag_remove_timer);
+	}
+	if(cvar == convar_nt_dogtag_announcer)
+	{
+		g_DogTagAnnouncer = !g_DogTagAnnouncer;
+	}
 }
 
+public Action:Command_AnnouncerEnabled(client, args)
+{
+	if (args < 1)
+	{
+		ReplyToCommand(client, "[] Usage: sm_announcer_enabled <1|0>");
+		ReplyToCommand(client, "[] nt_dogtag_announcer is currently %i", GetConVarInt(convar_nt_dogtag_announcer));
+		return Plugin_Handled;
+	}
+	else{	
+		decl String:enabled[PLATFORM_MAX_PATH];
+		GetCmdArg(1, enabled, sizeof(enabled));
+		if(StrEqual(enabled, "1"))
+		{
+			SetConVarInt(convar_nt_dogtag_announcer, 1);
+			PrintToChatAll("[] Announcer is now %i", GetConVarInt(convar_nt_dogtag_announcer));
+			PrintToConsole(client, "[] Announcer is now %i", GetConVarInt(convar_nt_dogtag_announcer));
+		}
+		else
+		{
+			SetConVarInt(convar_nt_dogtag_announcer, 0);
+			PrintToChatAll("[] Announcer is now %i", GetConVarInt(convar_nt_dogtag_announcer));
+			PrintToConsole(client, "[] Announcer is now %i", GetConVarInt(convar_nt_dogtag_announcer));
+		}
+	}
+	return Plugin_Handled;
+}
 
+public Action:Command_ToggleAnnouncer(client, args)
+{
+	if(args > 0)
+	{
+		decl String:buffer[PLATFORM_MAX_PATH];
+		GetCmdArg(1, buffer, sizeof(buffer));
+		if(StrEqual(buffer, "on", false))
+		{
+			PrintToChat(client, "[] Overriding. Enabling announcer just for you");
+			g_AnnouncerOverrideforClient[client] = true;
+		}
+		if(StrEqual(buffer, "off", false))
+		{
+			PrintToChat(client, "[] Overriding. Disabling announcer just for you");
+			g_AnnouncerOverrideforClient[client] = false;
+		}
+		else
+		{
+			PrintToConsole(client, "[] Usage: sm_announcer <on/off>. Enables announcer just for you in case it's disabled globally.");
+			PrintToChat(client, "[] Usage: !announcer <on/off>. Enables announcer just for you in case it's disabled globally.");
+		}
+		return Plugin_Handled;
+	}
+	
+	if(g_AnnouncerDisabledforClient[client])
+	{
+		g_AnnouncerDisabledforClient[client] = !g_AnnouncerDisabledforClient[client];
+		PrintToChat(client, "[] Announcer is now enabled.");
+		PrintToConsole(client, "[] Announcer is now enabled.");
+	}
+	else
+	{
+		g_AnnouncerDisabledforClient[client] = !g_AnnouncerDisabledforClient[client];
+		PrintToChat(client, "[] Announcer is now disabled.");
+		PrintToConsole(client, "[] Announcer is now disabled.");
+	}
+	return Plugin_Handled;
+}
+	
+	
+	
+	
+/*
 public OnChangeGrenadeRespawnTimeCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	g_GrenadeRespawnTime = GetConVarFloat(convar_nt_tdm_grenade_respawn_time);
@@ -429,6 +564,7 @@ public OnChangeDogTagTimer(Handle:cvar, const String:oldVal[], const String:newV
 {
 	g_DogTagRemoveTime = GetConVarFloat(convar_nt_dogtag_remove_timer);
 }
+*/
 
 public OnChangeKFEnabledCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
@@ -889,6 +1025,11 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				score = -1;								//FIXME! might be redundant with other plugins, thus doing -2 (probably not that bad)
 
 			SetTeamScore(attackerTeam, GetTeamScore(attackerTeam) + score);
+			
+			
+			if(g_TimerRemoveProjectiles[victim] != INVALID_HANDLE)
+				KillTimer(g_TimerRemoveProjectiles[victim]);
+			g_TimerRemoveProjectiles[victim] = CreateTimer(9.0, IterateRemainingDetpacks, victim); //removing remaining detpacks on the ground
 		}
 	
 		if (g_KF_enabled)				//Question: do we give a player point for killing, and a team point for picking up a dogtag?
@@ -921,10 +1062,10 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 			{
 				SpawnDogTag(deathorigin, g_DogTagModelJINRAI);
 			}
+			if(g_TimerRemoveProjectiles[victim] != INVALID_HANDLE)
+				KillTimer(g_TimerRemoveProjectiles[victim]);
+			g_TimerRemoveProjectiles[victim] = CreateTimer(9.0, IterateRemainingDetpacks, victim); //removing remaining detpacks on the ground
 		}
-		
-		
-		//TODO: clear unused smokes and detpacks
 		
 		
 		
@@ -961,7 +1102,7 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				SpawnDogTag(deathorigin, g_DogTagModelJINRAI);
 			}
 		}
-	}	
+	}
 }
 
 public Action:SpawnDogTag(Float:deathlocation[3], const String:modelname[])
@@ -1107,8 +1248,21 @@ public Action:OnDogTagTouched(dogtag_entity, client)
 				// emit sound effect
 				new Float:coords_KilledEnt[3];
 				GetEntPropVector(dogtag_entity, Prop_Send, "m_vecOrigin", coords_KilledEnt);
-				EmitSoundToAll(g_DogTagPickupSoundDenied, SOUND_FROM_WORLD, SNDCHAN_AUTO, 130, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
+				EmitSoundToAll(g_DogTagPickupSoundDenied[0], SOUND_FROM_WORLD, SNDCHAN_AUTO, 130, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
 				
+				if(g_AnnouncerOverrideforClient[client])
+				{
+					if(g_SoundTimerOverride[client] != INVALID_HANDLE)
+						KillTimer(g_SoundTimerOverride[client]);
+					g_SoundTimerOverride[client] = CreateTimer(0.5, EmitRandomLocalSoundPickedupOverride, client);
+				}
+				
+				if(GetConVarInt(convar_nt_dogtag_announcer) == 1)
+				{
+					if(g_SoundTimer[client] != INVALID_HANDLE)
+						KillTimer(g_SoundTimer[client]);
+					g_SoundTimer[client] = CreateTimer(0.5, EmitRandomLocalSoundDenied, client);
+				}
 				
 				#if DEBUG > 0
 				PrintToChatAll("Denied a dogtag");
@@ -1134,8 +1288,23 @@ public Action:OnDogTagTouched(dogtag_entity, client)
 				// emit sound effect
 				new Float:coords_KilledEnt[3];
 				GetEntPropVector(dogtag_entity, Prop_Send, "m_vecOrigin", coords_KilledEnt);
-				EmitSoundToAll(g_DogTagPickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_HIGH, -1, coords_KilledEnt);
-			
+				EmitSoundToAll(g_DogTagPickupSound[0], SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_HIGH, -1, coords_KilledEnt);
+
+				if(g_AnnouncerOverrideforClient[client])
+				{
+					if(g_SoundTimerOverride[client] != INVALID_HANDLE)
+						KillTimer(g_SoundTimerOverride[client]);
+					g_SoundTimerOverride[client] = CreateTimer(0.5, EmitRandomLocalSoundPickedupOverride, client);
+				}
+				
+				if(GetConVarInt(convar_nt_dogtag_announcer) == 1)
+				{				
+					if(g_SoundTimer[client] != INVALID_HANDLE)
+						KillTimer(g_SoundTimer[client]);
+					g_SoundTimer[client] = CreateTimer(0.5, EmitRandomLocalSoundPickedup, client);
+				}
+
+				
 				#if DEBUG > 0
 				PrintToChatAll("Picked up a dogtag");
 				PrintToConsole(client, "Picked up a dogtag, coords %f %f %f", coords_KilledEnt[0], coords_KilledEnt[1], coords_KilledEnt[2]);
@@ -1171,7 +1340,21 @@ public Action:OnDogTagTouched(dogtag_entity, client)
 				// emit sound effect
 				new Float:coords_KilledEnt[3];
 				GetEntPropVector(dogtag_entity, Prop_Send, "m_vecOrigin", coords_KilledEnt);
-				EmitSoundToAll(g_DogTagPickupSoundDenied, SOUND_FROM_WORLD, SNDCHAN_AUTO, 130, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
+				EmitSoundToAll(g_DogTagPickupSoundDenied[0], SOUND_FROM_WORLD, SNDCHAN_AUTO, 130, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, coords_KilledEnt);
+
+				if(g_AnnouncerOverrideforClient[client])
+				{
+					if(g_SoundTimerOverride[client] != INVALID_HANDLE)
+						KillTimer(g_SoundTimerOverride[client]);
+					g_SoundTimerOverride[client] = CreateTimer(0.5, EmitRandomLocalSoundPickedupOverride, client);
+				}
+				
+				if(GetConVarInt(convar_nt_dogtag_announcer) == 1)
+				{				
+					if(g_SoundTimer[client] != INVALID_HANDLE)
+						KillTimer(g_SoundTimer[client]);
+					g_SoundTimer[client] = CreateTimer(0.5, EmitRandomLocalSoundDenied, client);
+				}
 				
 				#if DEBUG > 0
 				PrintToChatAll("Denied a dogtag");
@@ -1198,7 +1381,22 @@ public Action:OnDogTagTouched(dogtag_entity, client)
 				// emit sound effect
 				new Float:coords_KilledEnt[3];
 				GetEntPropVector(dogtag_entity, Prop_Send, "m_vecOrigin", coords_KilledEnt);
-				EmitSoundToAll(g_DogTagPickupSound, SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_HIGH, -1, coords_KilledEnt);
+				EmitSoundToAll(g_DogTagPickupSound[0], SOUND_FROM_WORLD, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_HIGH, -1, coords_KilledEnt);
+
+				if(g_AnnouncerOverrideforClient[client])
+				{
+					if(g_SoundTimerOverride[client] != INVALID_HANDLE)
+						KillTimer(g_SoundTimerOverride[client]);
+					g_SoundTimerOverride[client] = CreateTimer(0.5, EmitRandomLocalSoundPickedupOverride, client);
+				}
+				
+				if(GetConVarInt(convar_nt_dogtag_announcer) == 1)
+				{				
+					if(g_SoundTimer[client] != INVALID_HANDLE)
+						KillTimer(g_SoundTimer[client]);
+					g_SoundTimer[client] = CreateTimer(0.5, EmitRandomLocalSoundPickedup, client);
+				}
+	
 			
 				#if DEBUG > 0
 				PrintToChatAll("Picked up a dogtag");
@@ -1229,6 +1427,65 @@ public Action:OnDogTagTouched(dogtag_entity, client)
 	
 	return Plugin_Handled;
 }
+
+public Action:EmitRandomLocalSoundPickedup(Handle:timer, client)
+{
+	if(!g_AnnouncerDisabledforClient[client] && !g_AnnouncerOverrideforClient[client])
+	{
+		new randomsoundoccurence = UTIL_GetRandomInt(0, 10);  //FIXME: not used right now, remove?
+		if(randomsoundoccurence > 0)
+		{
+			new randompitch = UTIL_GetRandomInt(80, 95);
+			EmitSoundToClient(client, g_DogTagPickupSound[1], SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, randompitch);
+		}
+	}
+	g_SoundTimer[client] = INVALID_HANDLE;
+}
+
+public Action:EmitRandomLocalSoundDenied(Handle:timer, client)
+{
+	if(!g_AnnouncerDisabledforClient[client] && !g_AnnouncerOverrideforClient[client])
+	{
+		new randomsoundoccurence = UTIL_GetRandomInt(0, 10);
+		if(randomsoundoccurence > 0)
+		{
+			new randompitch = UTIL_GetRandomInt(80, 95);
+			EmitSoundToClient(client, g_DogTagPickupSoundDenied[1], SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, randompitch);
+		}
+	}
+	g_SoundTimer[client] = INVALID_HANDLE;
+}
+
+
+public Action:EmitRandomLocalSoundPickedupOverride(Handle:timer, client)
+{
+	if(g_AnnouncerOverrideforClient[client])
+	{
+		new randomsoundoccurence = UTIL_GetRandomInt(0, 10);
+		if(randomsoundoccurence > 0)
+		{
+			new randompitch = UTIL_GetRandomInt(80, 95);
+			EmitSoundToClient(client, g_DogTagPickupSound[1], SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, randompitch);
+		}
+	}
+	g_SoundTimerOverride[client] = INVALID_HANDLE;
+}
+
+public Action:EmitRandomLocalSoundDeniedOverride(Handle:timer, client)
+{
+	if(g_AnnouncerOverrideforClient[client])
+	{
+		new randomsoundoccurence = UTIL_GetRandomInt(0, 10);
+		if(randomsoundoccurence > 0)
+		{
+			new randompitch = UTIL_GetRandomInt(80, 95);
+			EmitSoundToClient(client, g_DogTagPickupSoundDenied[1], SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, randompitch);
+		}
+	}
+	g_SoundTimerOverride[client] = INVALID_HANDLE;
+}
+
+
 
 
 public OnPlayerSpawn(Handle:event,const String:name[],bool:dontBroadcast)
@@ -2416,10 +2673,100 @@ public Action:AddWeaponAmmo(client, const String:weaponclassname[], increment)
 
 
 
+public OnEntityCreated(entity, const String:classname[])
+{
+	if(StrEqual(classname, "smokegrenade_projectile"))
+	{
+		CreateTimer(160.0, TimerRemoveSmokeGrenades, entity, TIMER_FLAG_NO_MAPCHANGE); //we don't want to timer to carry after map change
+	}
+	if(StrEqual(classname, "grenade_detapack"))
+	{
+		SDKHook(entity, SDKHook_SpawnPost, SpawnPost_MarkEntity);
+	}
+}
+
+public SpawnPost_MarkEntity(entity)
+{
+	new client = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	#if DEBUG > 0
+	//this function was meant to change the owner of the projectile after spawn, but we don't really need that anymore.
+	PrintToServer("Grenade entity: %i, m_hOwnerEntity: %i", entity, client);
+	#endif
+	
+	if(g_thrownDetpack_cursor[client] > 30) //hardcoded size of our column in thrownDetPack array
+	{
+		g_thrownDetpack_cursor[client] = 0;
+	}		
+	g_thrownDetpack[client][g_thrownDetpack_cursor[client]] = entity;
+	
+	g_thrownDetpack_cursor[client]++;
+}
+
+
+public Action:TimerRemoveSmokeGrenades(Handle:timer, entity)
+{
+	if(entity > MaxClients && IsValidEdict(entity))
+	{
+		decl String:classname[50];
+		GetEdictClassname(entity, classname, sizeof(classname));
+		if(StrEqual(classname, "smokegrenade_projectile"))
+		{
+			AcceptEntityInput(entity, "kill");
+		}
+	}
+}
 
 
 
-stock RemoveRotatorPre(propindex)
+
+
+public RemoveProjectile(entity)
+{
+	if(IsValidEdict(entity))
+	{
+		decl String:classname[50];
+		GetEdictClassname(entity, classname, sizeof(classname));
+		if(StrEqual(classname, "grenade_projectile") || StrEqual(classname, "smokegrenade_projectile") || StrEqual(classname, "grenade_detapack"))
+		{
+			AcceptEntityInput(entity, "kill");
+		}
+	}
+	
+}
+
+public Action:IterateRemainingDetpacks(Handle:timer, client)
+{
+	g_TimerRemoveProjectiles[client] = INVALID_HANDLE;
+	
+	#if DEBUG > 0
+	PrintToServer("[DEBUG] Clearing all projectiles for client %i", client);
+	#endif
+	
+	for(new i; i < 30; i++)
+	{
+		if(g_thrownDetpack[client][i] > MaxClients && IsValidEdict(g_thrownDetpack[client][i]))
+		{
+			RemoveProjectile(g_thrownDetpack[client][i]);
+		}
+	}
+	g_thrownDetpack_cursor[client] = 0;
+}
+
+
+public OnPlayerDisconnected(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	new client = GetEventInt(event, "userid");
+	#if DEBUG > 0
+	PrintToServer("[DEBUG] Client: %i disconnected! Clearing projectiles in 15 sec", client);
+	#endif
+	if(g_TimerRemoveProjectiles[client] != INVALID_HANDLE)
+		KillTimer(g_TimerRemoveProjectiles[client]);	
+	
+	g_TimerRemoveProjectiles[client] = CreateTimer(3.0, IterateRemainingDetpacks, client, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+
+public RemoveRotatorPre(propindex)
 {
 	new m_iRotator = GetEntPropEnt(propindex, Prop_Send, "m_hEffectEntity");
 	decl String:EntName[30];
@@ -2529,13 +2876,6 @@ stock RemoveEntity(entityindex, killHierarchy=false)
 }
 
 
-
-
-public Action:ResetDisplayBool(Handle:timer, client) //resetting the bool to display message again
-{
-	g_bDisplay[client] = false;
-}
-
 public Action:timer_RespawnAmmoPack(Handle:timer, cursor_position)
 {
 	//new ammopack;
@@ -2641,12 +2981,19 @@ public KillRemainingGhost()
 // in case we use on-map basis plugin load, unload the plugin after this map
 public OnMapEnd()
 {
+	for(new i; i < MaxClients; i++)
+	{
+		//clearing handles for timers with flag TIMER_FLAG_NO_MAPCHANGE
+		g_TimerRemoveProjectiles[i] = INVALID_HANDLE;
+	}
+	
 	g_DMStarted = false;
 	SetConVarInt(convar_nt_tdm_enabled, 0);
 	SetConVarInt(convar_nt_tdm_kf_enabled, 0);
 	SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0);
-
-	ReloadConflictingPlugins();
 	ServerCommand("nt_healthkitdrop 0");
 	//ServerCommand("tpr_enabled 0");
+	
+	ReloadConflictingPlugins();
+
 }
