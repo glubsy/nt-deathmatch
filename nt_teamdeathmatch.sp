@@ -1,10 +1,8 @@
 /**************************************************************
 --------------------------------------------------------------
- NEOTOKYOｰ Deathmatch
-
+ NEOTOKYOｰ TeamDeathmatch
  Plugin licensed under the GPLv3
- 
- Coded by Agiel.
+ Coded by Agiel and glub.
 --------------------------------------------------------------
 
 Changelog
@@ -1018,10 +1016,15 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 
 			new victimTeam = GetClientTeam(victim);
-			new attackerTeam = GetClientTeam(attacker);   //FIXME! error Native "GetClientTeam" reported: Client index 0 is invalid when suiciding with world
+			new attackerTeam;
+			
+			if(attacker < 1)
+				attackerTeam = 0;
+			else
+				attackerTeam = GetClientTeam(attacker);
 
 			new score = 1;
-			if (attackerTeam == victimTeam)
+			if (attackerTeam == victimTeam || attackerTeam == 0)
 				score = -1;								//FIXME! might be redundant with other plugins, thus doing -2 (probably not that bad)
 
 			SetTeamScore(attackerTeam, GetTeamScore(attackerTeam) + score);
@@ -1036,10 +1039,16 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 		{
 			new victim = GetClientOfUserId(GetEventInt(event, "userid"));
 			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+			
 			new victimTeam = GetClientTeam(victim);
-			new attackerTeam = GetClientTeam(attacker);
+			new attackerTeam;
+			
+			if(attacker < 1)
+				attackerTeam = 0;
+			else
+				attackerTeam = GetClientTeam(attacker);
 
-			if (attackerTeam == victimTeam)
+			if (attackerTeam == victimTeam || attackerTeam == 0)
 			{
 				SetTeamScore(attackerTeam, GetTeamScore(attackerTeam) - 1 ); //FIXME! might be redundant with other plugins, thus doing -2 (probably not that bad)
 			}
@@ -1077,9 +1086,14 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 			new victim = GetClientOfUserId(GetEventInt(event, "userid"));
 			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 			new victimTeam = GetClientTeam(victim);
-			new attackerTeam = GetClientTeam(attacker);
+			new attackerTeam;
+			
+			if(attacker < 1)
+				attackerTeam = 0;
+			else
+				attackerTeam = GetClientTeam(attacker);
 
-			if (attackerTeam == victimTeam)
+			if (attackerTeam == victimTeam || attackerTeam == 0)
 			{
 				SetTeamScore(attackerTeam, GetTeamScore(attackerTeam) - 1 ); //FIXME! might be redundant with other plugins, thus doing -2 (probably not that bad)
 			}
