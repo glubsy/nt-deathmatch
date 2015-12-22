@@ -4,6 +4,9 @@ Sourcemod deathmatch plugin for Neotokyo
 
 ####Requirements:
 
+SMLIB: https://github.com/bcserv/smlib
+Latest gamedata: https://github.com/alliedmodders/sourcemod/blob/master/gamedata/sdktools.games/game.neotokyo.txt
+
 Place the keyvalue files in sourcemod/configs/mapname.txt
 
 If you plan on using custom ladders (thus adding the corresponding keyvalues in the config file), you will need a ladder4.mdl file in the /models/ladder/ folder. This model should be compiled with $content ladder in its .qc file. 
