@@ -4,8 +4,9 @@ Sourcemod deathmatch plugin for Neotokyo
 
 ####Requirements:
 
-SMLIB: https://github.com/bcserv/smlib
-Latest gamedata: https://github.com/alliedmodders/sourcemod/blob/master/gamedata/sdktools.games/game.neotokyo.txt
+**SMLIB**: https://github.com/bcserv/smlib
+
+**Latest gamedata**: https://github.com/alliedmodders/sourcemod/blob/master/gamedata/sdktools.games/game.neotokyo.txt
 
 Place the keyvalue files in sourcemod/configs/mapname.txt
 
