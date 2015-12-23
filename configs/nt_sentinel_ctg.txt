@@ -122,7 +122,7 @@
 			"coordinates"	"-215.218750 1274.531250 44.531250"
 			"angles"		"40.194092 -6.168675 0.0"
 		}
-		"north east ground inside concrete thing FIX"
+		"north east ground inside concrete thing"
 		{
 			"coordinates"	"33.468750 965.687500 32.781250"
 			"angles"		"50.162823 -11.847837 0.0"
@@ -212,7 +212,7 @@
 			"coordinates"	"-470.437500 116.593750 340.531250"
 			"angles"		"44.588749 -38.049915 0.0"
 		}
-		"north east moddle by pillar"
+		"north east middle by pillar"
 		{
 			"coordinates"	"-48.468750 809.906250 340.531250"
 			"angles"		"33.423775 163.495758 0.0"
@@ -349,8 +349,8 @@
 		}
 		"south elevator high floor"
 		{
-			"coordinates"	"	"
-			"angles"		"39.012611 38.240929 0.0"
+			"coordinates"	"2355.031250 -5.937500 335.25"
+			"angles"		"21.9 85.0 0.0"
 		}
 		"south west by cart"
 		{
@@ -362,7 +362,7 @@
 			"coordinates"	"530.735596 -1376.290161 615.531250"
 			"angles"		"60.226093 87.623665 0.0"
 		}
-		"north-west between crates "
+		"north-west between crates"
 		{
 			"coordinates"	"-179.687500 -1360.500000 615.531250"
 			"angles"		"8.707589 -170.615417 0.0"
