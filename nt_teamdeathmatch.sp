@@ -112,7 +112,7 @@ int tobereset_int_cursor = 0;
 new bool:g_RandomPlayerSpawns = false;
 new bool:g_PlayerCoordsKeyPresent = false;
 
-int ammolines = 200;
+int ammolines = 100;
 new bool:g_AmmoPackKeyPresent = false;
 new bool:g_AmmoPackCoordsPresent = false;
 new Float:ammocoords_array[60][3];  //60 is hard coded 30 max possible ammo pack locations, might have to change that
@@ -125,7 +125,7 @@ new const String:g_AmmoPickupSound[] = "items/ammo_pickup.wav";
 new gOffsetMyWeapons;
 //new gOffsetAmmo;
 
-int grenadelines = 200;
+int grenadelines = 100;
 new bool:g_GrenadePacksKeyPresent = false;
 new bool:g_GrenadePacksCoordsPresent = false;
 new Float:grenadecoords_array[60][3];
@@ -137,7 +137,7 @@ new const String:g_GrenadePickupSound[] = "common/wpn_moveselect.wav";
 new grenadeprop[30];
 
 
-int ladderlines = 200;
+int ladderlines = 100;
 new bool:g_LaddersKeyPresent = false;
 new bool:g_LaddersCoordsPresent = false;
 new Float:laddercoords_array[60][3];
@@ -220,10 +220,12 @@ public OnPluginStart()
 	RegAdminCmd("sm_randomplayerspawns", Command_Randomplayerspawns, ADMFLAG_KICK, "Enables or disables random player spawns.");
 	RegAdminCmd("sm_tdm_timelimit", Command_TDM_Timelimit, ADMFLAG_KICK, "Sets team deathmatch timelimit.");
 	RegAdminCmd("sm_kf_hardcore_enable", Command_KF_Hardcore_Enable, ADMFLAG_KICK, "Enables or disables gaining points ONLY by pickup up dogtags.");
-	RegAdminCmd("sm_kf_reload_kvfile", Command_KF_Reload_kvfile, ADMFLAG_KICK, "Reloads KeyValue files for coordinates.");
 	RegAdminCmd("sm_announcer_enabled", Command_AnnouncerEnabled, ADMFLAG_KICK, "Enables or disables dumb announcer for all.");
 	RegConsoleCmd("sm_announcer", Command_ToggleAnnouncer, "Toggles the announcer on/off.");
 	
+	
+	RegAdminCmd("sm_kf_reload_kvfile", Command_KF_Reload_kvfile, ADMFLAG_KICK, "Reloads KeyValue files for coordinates.");
+	RegAdminCmd("sm_tdm_forcerespawnladders", ForceSpawnLadder, ADMFLAG_KICK, "DEBUG: force respawning ladders.");
 	
 	#if DEBUG > 1
 	RegAdminCmd("sm_forcestartdm", CommandRestartDeatchmatch, ADMFLAG_SLAY, "forces deathmatch-debug command for testing");
@@ -726,6 +728,11 @@ public Action:StartDeatchmatch(Handle:timer)
 	StartDeathmatch();
 }
 
+public Action:ForceSpawnLadder(client, args)  //DEBUG
+{
+	PrintToServer("[TDM] Forcing respawning ladders");
+	SpawnLadder();
+}
 
 /*======================================
 
@@ -1716,7 +1723,7 @@ void InitArray()
 
 			if(!KvGotoFirstSubKey(kv))  //we place ourselves at the first entry
 			{
-				PrintToServer("Error finding first subkey for entry %s", CurrentMap);
+				PrintToServer("[TDM] Error finding first subkey for entry %s", CurrentMap);
 				break;
 			}
 			/*
@@ -1750,7 +1757,7 @@ void InitArray()
 			lines = i;
 			
 			#if DEBUG >= 1
-			PrintToServer("lines : %d", lines);
+			PrintToServer("[TDM] lines : %d", lines);
 			#endif
 			
 			KvRewind(kv);  //going back to top of kv
@@ -1759,7 +1766,7 @@ void InitArray()
 			
 			if(!KvJumpToKey(kv, "Ammopacks"))
 			{
-				PrintToServer("Ammopacks coordinates key was not found in the keyvalues file!");
+				PrintToServer("[TDM] Ammopacks coordinates key was not found in the keyvalues file!");
 				g_AmmoPackKeyPresent = false;
 				break;
 			}
@@ -1767,7 +1774,7 @@ void InitArray()
 
 			if(!KvGotoFirstSubKey(kv)) 
 			{
-				PrintToServer("Error finding first subkey for entry in Ammopacks. Assuming we don't want any.");
+				PrintToServer("[TDM] Error finding first subkey for entry in Ammopacks. Assuming we don't want any.");
 				g_AmmoPackCoordsPresent = false;
 				break;
 			}
@@ -1791,7 +1798,7 @@ void InitArray()
 			ammolines = i; //number of ammo subkeys counted
 			
 			#if DEBUG >= 1
-			PrintToServer("ammolines : %d", ammolines);
+			PrintToServer("[TDM] ammolines : %d", ammolines);
 			#endif
 			
 			KvRewind(kv);  //going back to top of kv again
@@ -1800,7 +1807,7 @@ void InitArray()
 			
 			if(!KvJumpToKey(kv, "Grenadepacks"))
 			{
-				PrintToServer("Grenadepacks coordinates key was not found in the keyvalues file!");
+				PrintToServer("[TDM] Grenadepacks coordinates key was not found in the keyvalues file!");
 				g_GrenadePacksKeyPresent = false;
 				break;
 			}
@@ -1808,7 +1815,7 @@ void InitArray()
 
 			if(!KvGotoFirstSubKey(kv)) 
 			{
-				PrintToServer("Error finding first subkey for coordinates entry in Grenadepacks. Assuming we don't want any.");
+				PrintToServer("[TDM] Error finding first subkey for coordinates entry in Grenadepacks. Assuming we don't want any.");
 				g_GrenadePacksCoordsPresent = false;
 				break;
 			}
@@ -1842,7 +1849,7 @@ void InitArray()
 			
 			if(!KvJumpToKey(kv, "Ladders"))
 			{
-				PrintToServer("Ladders key was not found in the keyvalues file!");
+				PrintToServer("[TDM] Ladders key was not found in the keyvalues file!");
 				g_LaddersKeyPresent = false;
 				break;
 			}
@@ -1850,13 +1857,15 @@ void InitArray()
 
 			if(!KvGotoFirstSubKey(kv)) 
 			{
-				PrintToServer("Error finding first subkey for coordinates entry in Ladders. Assuming we don't want any.");
+				PrintToServer("[TDM] Error finding first subkey for coordinates entry in Ladders. Assuming we don't want any.");
+				LogError("[TDM] Error finding first subkey for coordinates entry in Ladders. Assuming we don't want any.");
 				g_LaddersCoordsPresent = false;
 				break;
 			}
 			else{ g_LaddersCoordsPresent = true; }
 			
 			i = 0;
+			ladderlines = 100;
 			do
 			{
 				if(i >= ladderlines)
@@ -1871,18 +1880,20 @@ void InitArray()
 				
 				i++;
 			} while (KvGotoNextKey(kv));
-			ladderlines = i; //number of ladder subkeys counted
-			#if DEBUG > 1
-			PrintToServer("ladderlines : %d", ladderlines);
-			#endif		
+			ladderlines = i; //we stire the number of ladder subkeys counted
+			//#if DEBUG > 1
+			PrintToServer("[TDM] ladderlines : %d", ladderlines);
+			LogError("[TDM] ladderlines : %d", ladderlines);
+			//#endif		
 			
 			
 		} while (false);
 		CloseHandle(kv);
 	}
-	#if DEBUG > 0
-	PrintToServer("KeyValues file for %s not found in %s", CurrentMap, file);
-	#endif
+	else
+	{
+		PrintToServer("[TDM] KeyValues file for %s not found in %s", CurrentMap, file);
+	}
 }
 
 
@@ -1987,8 +1998,7 @@ public SpawnGrenadePack()
 
 public SpawnLadder()
 {
-	new ladderprop[60];
-	for(new i; i < ladderlines; i++)
+	for(new i = 0; i < ladderlines; i++)
 	{
 		new Float:temp_ladder_coords[3];
 		new Float:temp_ladder_angle[3]; 
@@ -2000,26 +2010,28 @@ public SpawnLadder()
 		temp_ladder_angle[1] = ladderangles_array[i][1];
 		temp_ladder_angle[2] = ladderangles_array[i][2];
 		
-		ladderprop[i] = CreateEntityByName("prop_dynamic");
-		DispatchKeyValue(ladderprop[i], "model", g_LadderModel);
-		DispatchKeyValueVector(ladderprop[i], "Origin", temp_ladder_coords);
-		DispatchKeyValueVector(ladderprop[i], "Angles", temp_ladder_angle);
-		
-		
-		if(DispatchSpawn(ladderprop[i]))
+		new ladderpropindex = CreateEntityByName("prop_dynamic");
+		if(ladderpropindex != -1)
 		{
-			SetEntProp(ladderprop[i], Prop_Send, "m_usSolidFlags", 136);
-			SetEntProp(ladderprop[i], Prop_Send, "m_CollisionGroup", 6);   //FIX make solid
-			#if DEBUG > 1
-			PrintToServer("Spawned ladder number %i", i);
-			#endif
+			DispatchKeyValue(ladderpropindex, "model", g_LadderModel);
+			DispatchKeyValueVector(ladderpropindex, "Origin", temp_ladder_coords);
+			DispatchKeyValueVector(ladderpropindex, "Angles", temp_ladder_angle);
+
+			if(DispatchSpawn(ladderpropindex))
+			{
+				SetEntProp(ladderpropindex, Prop_Send, "m_usSolidFlags", 136);
+				SetEntProp(ladderpropindex, Prop_Send, "m_CollisionGroup", 6);   //FIX make solid
+				#if DEBUG > 1
+				PrintToServer("Spawned ladder number %i", ladderpropindex);
+				#endif
+			}
 		}
 	}
 }
 
 
 
-stock ReSpawnAmmo(Float:position[3], const String:model[])
+public ReSpawnAmmo(Float:position[3], const String:model[])
 {
 	decl ammoprop;
 
@@ -2066,7 +2078,7 @@ stock ReSpawnAmmo(Float:position[3], const String:model[])
 }
 
 
-stock ReSpawnGrenade(Float:position[3], const String:model[])
+public ReSpawnGrenade(Float:position[3], const String:model[])
 {
 	decl m_iGrenade;
 
@@ -2756,7 +2768,7 @@ public Action:IterateRemainingDetpacks(Handle:timer, client)
 	PrintToServer("[DEBUG] Clearing all projectiles for client %i", client);
 	#endif
 	
-	for(new i; i < 30; i++)
+	for(new i = 0; i <= 29; i++)
 	{
 		if(g_thrownDetpack[client][i] > MaxClients && IsValidEdict(g_thrownDetpack[client][i]))
 		{
