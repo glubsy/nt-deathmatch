@@ -1,0 +1,6 @@
+"vertexlitGeneric"
+{
+	"$baseTexture" "models\ladder\ladder4"
+	"$surfaceprop" "metal"
+
+}

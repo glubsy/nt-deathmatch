@@ -1,0 +1,66 @@
+"UnlitGeneric"
+{
+	"$basetexture" "effects/combine_binocoverlay"
+	//$basetexture "models\logo\nsf_logo"
+	$translucent 1
+	//$alphatest 1
+	//$alpha "0.1"
+	//$additive "1" //brightens when faces get superimposed
+	//$mod2x "1"  //only with Modulate shader
+	//$selfillum 1
+	"$no_fullbright" 1
+
+	$model 1
+	
+	"$color" "[1 1 1]"
+	
+	//"$color" "{255 255 255}"
+	$offset 0
+	
+	Proxies // proxies are listed inside this block
+	{
+		EntityRandom
+		{
+			scale 12
+			resultVar $offset // write to custom var
+		}
+		Sine // a proxy which produces a sine wave
+		{
+			resultVar	$alpha // The shader parameter to be manipulated
+			timeoffset	$offset
+			sineperiod	8
+			sinemin		0.2  //0.1
+			sinemax		0.5  //0.5
+		}
+		TextureScroll
+		{
+			"textureScrollVar" "$basetexturetransform"
+			"textureScrollRate" 0.25
+			"textureScrollAngle" 90  //(90 = up, 180 = left, etc)
+		}
+		Sine
+		{
+			"sineperiod" 15
+			sinemin	0.9
+			sinemax	1
+			//"timeoffset" "$offset"
+			"resultVar" "$color[2]"
+		}
+		Sine
+		{
+			"sineperiod" 15
+			sinemin	0.1
+			sinemax	1
+			//"timeoffset" "$offset"
+			"resultVar" "$color[0]"
+		}
+		Sine
+		{
+			"sineperiod" 15
+			sinemin	0.7
+			sinemax 0.9
+			//"timeoffset" "$offset"
+			"resultVar" "$color[1]"
+		}
+	}
+}
