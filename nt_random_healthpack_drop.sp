@@ -41,6 +41,7 @@ public OnPluginStart()
 	CreateConVar("nt_drop_random_health_version", PLUGIN_VERSION, "Healthpack drop Plugin Version", FCVAR_DONTRECORD|FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY)
 	SetConVarString(FindConVar("nt_drop_random_health_version"), PLUGIN_VERSION)
 	g_healthkitenabled = CreateConVar("nt_healthkitdrop", "0", "Enables or disables random healthkit drops on death", FCVAR_PLUGIN);
+	RegAdminCmd("nt_healthkitdropsenabled", Command_CvarHealthKit ,ADMFLAG_KICK, "Enables or disables random healthkit drops on death");
 	kithealth = CreateConVar("nt_drop_health_amount", "30", "<#> = Amount of HP to add to a player when pick up a Healthpack", FCVAR_PLUGIN, true, 5.0, true, 300.0)
 	kithealthmax = CreateConVar("nt_drop_health_maximum", "100", "max. Amount of Health a Player can have to pickup a Healthpack", FCVAR_PLUGIN, true, 100.0, true, 600.0)
 	kithealthmaxvar = CreateConVar("nt_drop_health_maximum_var", "0", "what happens when max. Health is reached: 0 = delete Healthpack , 1 = Healthpack will dropped from next dead player , 2 = do nothing with Healthpack", FCVAR_PLUGIN, true, 0.0, true, 2.0)
@@ -77,6 +78,31 @@ public OnMapStart()
 	SetRandomSeed(RoundToFloor(GetEngineTime()));
 }
 
+
+public Action:Command_CvarHealthKit(client, args)
+{
+	if (args < 1)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_nt_healthkitdropsenabled <1|0>");
+		ReplyToCommand(client, "[SM] sm_nt_healthkitdropsenabled is currently %i", GetConVarInt(g_healthkitenabled));
+		return Plugin_Handled;
+	}
+	else{	
+		decl String:enabled[PLATFORM_MAX_PATH];
+		GetCmdArg(1, enabled, sizeof(enabled));
+		if(StrEqual(enabled, "1"))
+		{
+			SetConVarInt(g_healthkitenabled, 1);
+			ReplyToCommand(client, "[SM] Healthkit drops now: %i", GetConVarInt(g_healthkitenabled));
+		}
+		else
+		{
+			SetConVarInt(g_healthkitenabled, 0);
+			ReplyToCommand(client, "[SM] Healthkit drops now: %i", GetConVarInt(g_healthkitenabled));
+		}
+	}
+	return Plugin_Handled;
+}
 
 public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {

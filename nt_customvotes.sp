@@ -487,7 +487,7 @@ DisplayVoteKFMenu(client)
 
 	g_hVoteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
 	
-	if (g_Cvar_TDM.BoolValue)
+	if (g_Cvar_KF.BoolValue) 
 	{
 		g_hVoteMenu.SetTitle("Vote Kill Confirmed mode Off");
 	}

@@ -1,6 +1,6 @@
 /**************************************************************
 --------------------------------------------------------------
- NEOTOKYOï½° TeamDeathmatch
+ NEOTOKYO° TeamDeathmatch
  Plugin licensed under the GPLv3
  Coded by Agiel and glub.
 --------------------------------------------------------------
@@ -81,6 +81,7 @@ new Handle:convar_nt_tdm_grenade_respawn_time = INVALID_HANDLE;
 new Handle:convar_nt_dogtag_remove_timer = INVALID_HANDLE;
 ConVar convar_nt_tdm_kf_hardcore_enabled;
 new Handle:convar_nt_dogtag_announcer = INVALID_HANDLE;
+new Handle:HealthKitConvar = INVALID_HANDLE;
 
 new bool:g_DMStarted = false;
 new bool:g_KF_enabled = false;
@@ -109,7 +110,6 @@ int randomint_history[32];
 int history_cursor;
 int tobereset_int_cursor = 0;
 
-new bool:g_RandomPlayerSpawns = false;
 new bool:g_PlayerCoordsKeyPresent = false;
 
 int ammolines = 100;
@@ -240,7 +240,7 @@ public OnPluginStart()
 	#endif
 	
 	HookConVarChange(convar_nt_tdm_timelimit, OnTimeLimitChanged);
-	HookConVarChange(convar_nt_tdm_enabled, OnConfigsExecutedHook);  //added glub
+	HookConVarChange(convar_nt_tdm_enabled, OnConfigsExecutedHook);
 	HookConVarChange(convar_nt_tdm_randomplayerspawns, OnChangePlayerRandomSpawnsCvar);
 	HookConVarChange(convar_nt_tdm_ammo_respawn_time, OnChangedCvar);
 	HookConVarChange(convar_nt_tdm_grenade_respawn_time, OnChangedCvar);
@@ -261,6 +261,8 @@ public OnPluginStart()
 
 	// init random number generator
 	SetRandomSeed(RoundToFloor(GetEngineTime()));
+	
+	HealthKitConvar = FindConVar("nt_healthkitdrop");
 }
 
 
@@ -274,16 +276,6 @@ public OnConfigsExecuted()
 		PrintToChatAll("Team DeathMatch enabled!");
 	}
 	
-	if (GetConVarBool(convar_nt_tdm_randomplayerspawns))
-	{
-		g_RandomPlayerSpawns = true;
-		PrintToChatAll("Random player spawns enabled!");
-	}
-	if (!GetConVarBool(convar_nt_tdm_randomplayerspawns))
-	{
-		g_RandomPlayerSpawns = false;
-		PrintToChatAll("Random player spawns disabled!");
-	}
 	g_AmmoRespawnTime = GetConVarFloat(convar_nt_tdm_ammo_respawn_time);
 	g_GrenadeRespawnTime = GetConVarFloat(convar_nt_tdm_grenade_respawn_time);
 	g_DogTagRemoveTime = GetConVarFloat(convar_nt_dogtag_remove_timer);
@@ -387,7 +379,9 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		ServerCommand("neo_restart_this 1");
 
 		ReloadConflictingPlugins();
-		ServerCommand("nt_healthkitdrop 0");
+		
+		SetConVarInt(HealthKitConvar, 0);
+		
 		//ServerCommand("sm_cv tpr_enabled 0"); //disabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
 		SetConVarInt(convar_nt_tdm_kf_enabled, 0); 
 		SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0); 
@@ -409,7 +403,10 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		//ServerCommand("neo_restart_this 1");
 		
 		CreateTimer(1.5, UnloadConflictingPlugins);
-		ServerCommand("nt_healthkitdrop 1");
+		
+		SetConVarInt(HealthKitConvar, 1);
+		
+		
 		//ServerCommand("sm_cv tpr_enabled 1");  //enabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
 		
 		SetConVarInt(convar_nt_tdm_kf_enabled, 1); //we start KF enabled by default with TDM for now. FIXME: remove later.
@@ -455,12 +452,10 @@ public OnChangePlayerRandomSpawnsCvar(Handle:cvar, const String:oldVal[], const 
 {
 	if (GetConVarBool(convar_nt_tdm_randomplayerspawns))
 	{
-		g_RandomPlayerSpawns = true;
 		PrintToChatAll("[TDM] Random player spawns enabled!");
 	}
 	if (!GetConVarBool(convar_nt_tdm_randomplayerspawns))
 	{
-		g_RandomPlayerSpawns = false;
 		PrintToChatAll("[TDM] Random player spawns disabled!");
 	}
 }
@@ -550,21 +545,8 @@ public Action:Command_ToggleAnnouncer(client, args)
 	}
 	return Plugin_Handled;
 }
-	
-	
-	
-	
-/*
-public OnChangeGrenadeRespawnTimeCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
-{
-	g_GrenadeRespawnTime = GetConVarFloat(convar_nt_tdm_grenade_respawn_time);
-}
 
-public OnChangeDogTagTimer(Handle:cvar, const String:oldVal[], const String:newVal[])
-{
-	g_DogTagRemoveTime = GetConVarFloat(convar_nt_dogtag_remove_timer);
-}
-*/
+
 
 public OnChangeKFEnabledCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
@@ -1525,7 +1507,7 @@ public OnPlayerSpawn(Handle:event,const String:name[],bool:dontBroadcast)
 			
 			if(g_kvfilefound)
 			{
-				if(g_RandomPlayerSpawns == true)
+				if(GetConVarBool(convar_nt_tdm_randomplayerspawns))
 				{
 					if(g_PlayerCoordsKeyPresent == true)  //if map name is found in the keyvalue file of the same name
 					{
@@ -1887,7 +1869,7 @@ void InitArray()
 			//#endif		
 			
 			
-		} while (false);
+		} while (false);  //this is weird, but it works... 
 		CloseHandle(kv);
 	}
 	else
@@ -2663,11 +2645,11 @@ public Action:OnGrenadePackTouched(propi, client)
 
 public bool:SpawnWeaponClassName(client, const String:weaponclassname[])
 {
-	decl Float:coords[3];
-	decl Float:playercoords[3];
 	new weaponindex = CreateEntityByName(weaponclassname);
 	if(weaponindex > -1)
 	{
+		decl Float:coords[3];
+		decl Float:playercoords[3];
 		GetEntPropVector(weaponindex, Prop_Send, "m_vecOrigin", coords);
 		GetEntPropVector(client, Prop_Send, "m_vecOrigin", playercoords);
 		coords[0] = playercoords[0];
@@ -2719,7 +2701,7 @@ public SpawnPost_MarkEntity(entity)
 	PrintToServer("Grenade entity: %i, m_hOwnerEntity: %i", entity, client);
 	#endif
 	
-	if(g_thrownDetpack_cursor[client] > 30) //hardcoded size of our column in thrownDetPack array
+	if(g_thrownDetpack_cursor[client] > 29) //hardcoded size of our column in thrownDetPack array
 	{
 		g_thrownDetpack_cursor[client] = 0;
 	}		
@@ -3017,7 +2999,12 @@ public OnMapEnd()
 	SetConVarInt(convar_nt_tdm_enabled, 0);
 	SetConVarInt(convar_nt_tdm_kf_enabled, 0);
 	SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0);
+	
+	ResetConVar(HealthKitConvar);
+	
 	ServerCommand("nt_healthkitdrop 0");
+	
+	
 	//ServerCommand("tpr_enabled 0");
 	
 	ReloadConflictingPlugins();
