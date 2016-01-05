@@ -2763,7 +2763,7 @@ public Action:IterateRemainingDetpacks(Handle:timer, client)
 
 public OnPlayerDisconnected(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	new client = GetEventInt(event, "userid");
+	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	#if DEBUG > 0
 	PrintToServer("[DEBUG] Client: %i disconnected! Clearing projectiles in 15 sec", client);
 	#endif
