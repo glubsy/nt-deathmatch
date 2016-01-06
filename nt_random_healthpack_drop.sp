@@ -34,7 +34,7 @@ new Handle:PickUpSoundName = INVALID_HANDLE
 new Handle:UseOwnPickUpSound = INVALID_HANDLE
 new kitcountcounter = 0
 new deadkitammount = 0 
-ConVar g_healthkitenabled;
+Handle g_healthkitenabled;
 
 public OnPluginStart()
 {	

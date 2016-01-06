@@ -404,7 +404,7 @@
 		}
 		"south east high floor by pillar"
 		{
-			"coordinates"	"1182.924072 269.477356 615.248535"
+			"coordinates"	"1182.924072 311.477356 615.248535"
 			"angles"		"51.772587 83.439888 0.00"
 		}
 	}

@@ -177,6 +177,7 @@ new bool:g_DogTagAnnouncer = false;
 new bool:g_AnnouncerDisabledforClient[MAXPLAYERS+1] = false;
 new bool:g_AnnouncerOverrideforClient[MAXPLAYERS+1] = false;
 
+bool g_bIsPlayerAllowedToDeny[MAXPLAYERS+1];
 
 /*
 new const String:gSpawnSounds[][] =
@@ -1027,6 +1028,8 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 			new victim = GetClientOfUserId(GetEventInt(event, "userid"));
 			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 			
+			g_bIsPlayerAllowedToDeny[victim] = false; //prevents denying his own dogtag while being teleported away			
+			
 			new victimTeam = GetClientTeam(victim);
 			new attackerTeam;
 			
@@ -1208,9 +1211,9 @@ public Action:SpawnDogTag(Float:deathlocation[3], const String:modelname[])
 
 
 
-public Action:OnDogTagTouched(dogtag_entity, client)
+public Action OnDogTagTouched(int dogtag_entity, int client)
 {
-	if(client > 0 && client <= GetMaxClients() && dogtag_entity > 0 && !IsFakeClient(client) && IsValidEntity(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(dogtag_entity))
+	if(client > 0 && client <= GetMaxClients() && dogtag_entity > 0 && !IsFakeClient(client) && IsValidEntity(client) && IsClientInGame(client) && IsPlayerAlive(client) && IsValidEdict(dogtag_entity) && g_bIsPlayerAllowedToDeny[client])
 	{
  		// kill the linked func_rotating first
 		RemoveRotatorPre(dogtag_entity);
@@ -1486,8 +1489,10 @@ public Action:EmitRandomLocalSoundDeniedOverride(Handle:timer, client)
 	g_SoundTimerOverride[client] = INVALID_HANDLE;
 }
 
-
-
+public Action AllowClientToDenyDogTags(Handle timer, int client)
+{
+	g_bIsPlayerAllowedToDeny[client] = true;
+}
 
 public OnPlayerSpawn(Handle:event,const String:name[],bool:dontBroadcast)
 {
@@ -1502,6 +1507,9 @@ public OnPlayerSpawn(Handle:event,const String:name[],bool:dontBroadcast)
 			clientProtected[client] = true;
 
 			CreateTimer(GetConVarFloat(convar_nt_tdm_spawnprotect), timer_PlayerProtect, client);
+			
+			if(GetConVarBool(convar_nt_tdm_kf_enabled))
+				CreateTimer(2.0, AllowClientToDenyDogTags, client);
 			
 			if(g_kvfilefound)
 			{
