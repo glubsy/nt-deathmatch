@@ -261,8 +261,6 @@ public OnPluginStart()
 
 	// init random number generator
 	SetRandomSeed(RoundToFloor(GetEngineTime()));
-	
-	HealthKitConvar = FindConVar("nt_healthkitdrop");
 }
 
 
@@ -281,6 +279,7 @@ public OnConfigsExecuted()
 	g_DogTagRemoveTime = GetConVarFloat(convar_nt_dogtag_remove_timer);
 	
 	CheckConvarsOnMapLoaded();
+	HealthKitConvar = FindConVar("nt_healthkitdrop");
 
 	//Precaching models
 	PrecacheModel(g_LadderModel, true);
@@ -335,7 +334,6 @@ public OnConfigsExecuted()
 	AddFileToDownloadsTable("models/logo/nsf_logo.xbox.vtx");
 	AddFileToDownloadsTable("materials/models/logo/jinrai_logo.vmt");
 	AddFileToDownloadsTable("materials/models/logo/nsf_logo.vmt");
-
 }
 
 /*
@@ -343,7 +341,7 @@ public OnAutoConfigsBuffered() {
 	decl String:currentMap[64];
 	GetCurrentMap(currentMap, 64);
 
-	if(StrEqual(currentMap, "nt_terminal_ctg") || StrEqual(currentMap, "nt_sentinel_ctg") || StrEqual(currentMap, "nt_bullet_tdm") || StrEqual(currentMap, "nt_zaibatsu_ctg") && GetConVarInt(convar_nt_tdm_enabled) == 0)
+	if(StrEqual(currentMap, "nt_terminal_ctg") || StrEqual(currentMap, "nt_sentinel_ctg") || StrEqual(currentMap, "nt_bullet_tdm") || StrEqual(currentMap, "nt_zaibatsu_ctg") && GetConVarBool(convar_nt_tdm_enabled) == false)
 		SetConVarInt(convar_nt_tdm_enabled, 1); // we enable the convar for TDM automatically on these maps
 	else
 		SetConVarInt(convar_nt_tdm_enabled, 0);
@@ -354,7 +352,7 @@ public CheckConvarsOnMapLoaded()
 	decl String:currentMap[64];
 	GetCurrentMap(currentMap, 64);
 
-	if(StrEqual(currentMap, "nt_terminal_ctg") || StrEqual(currentMap, "nt_sentinel_ctg") || StrEqual(currentMap, "nt_sentinel_tdm") || StrEqual(currentMap, "nt_bullet_tdm") && GetConVarInt(convar_nt_tdm_enabled) == 0)
+	if(StrEqual(currentMap, "nt_terminal_ctg") || StrEqual(currentMap, "nt_sentinel_ctg") || StrEqual(currentMap, "nt_sentinel_tdm") || StrEqual(currentMap, "nt_bullet_tdm") && GetConVarBool(convar_nt_tdm_enabled) == false)
 		SetConVarInt(convar_nt_tdm_enabled, 1); // we enable the convar for TDM automatically on these maps
 	else
 		SetConVarInt(convar_nt_tdm_enabled, 0);
