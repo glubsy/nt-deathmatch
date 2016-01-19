@@ -379,7 +379,15 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 
 		ReloadConflictingPlugins();
 		
-		SetConVarInt(HealthKitConvar, 0);
+		if(HealthKitConvar != INVALID_HANDLE)
+		{
+			HealthKitConvar = FindConVar("nt_healthkitdrop");
+			if(HealthKitConvar != INVALID_HANDLE)
+				SetConVarInt(HealthKitConvar, 0);
+			else
+				LogError("[TDM] Couldn't Find HealthKitConvar");
+		}
+		
 		
 		//ServerCommand("sm_cv tpr_enabled 0"); //disabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
 		SetConVarInt(convar_nt_tdm_kf_enabled, 0); 
@@ -403,8 +411,14 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		
 		CreateTimer(1.5, UnloadConflictingPlugins);
 		
-		SetConVarInt(HealthKitConvar, 1);
-		
+		if(HealthKitConvar != INVALID_HANDLE)
+		{
+			HealthKitConvar = FindConVar("nt_healthkitdrop");
+			if(HealthKitConvar != INVALID_HANDLE)
+				SetConVarInt(HealthKitConvar, 1);
+			else
+				LogError("[TDM] Couldn't Find HealthKitConvar");
+		}
 		
 		//ServerCommand("sm_cv tpr_enabled 1");  //enabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
 		
@@ -1434,7 +1448,7 @@ public Action OnDogTagTouched(int dogtag_entity, int client)
 
 public Action:EmitRandomLocalSoundPickedup(Handle:timer, client)
 {
-	if(!g_AnnouncerDisabledforClient[client] && !g_AnnouncerOverrideforClient[client])
+	if(!g_AnnouncerDisabledforClient[client] && !g_AnnouncerOverrideforClient[client] && IsClientConnected(client))
 	{
 		new randomsoundoccurence = UTIL_GetRandomInt(0, 10);  //FIXME: not used right now, remove?
 		if(randomsoundoccurence > 0)
@@ -1448,7 +1462,7 @@ public Action:EmitRandomLocalSoundPickedup(Handle:timer, client)
 
 public Action:EmitRandomLocalSoundDenied(Handle:timer, client)
 {
-	if(!g_AnnouncerDisabledforClient[client] && !g_AnnouncerOverrideforClient[client])
+	if(!g_AnnouncerDisabledforClient[client] && !g_AnnouncerOverrideforClient[client] && IsClientConnected(client))
 	{
 		new randomsoundoccurence = UTIL_GetRandomInt(0, 10);
 		if(randomsoundoccurence > 0)
@@ -1463,7 +1477,7 @@ public Action:EmitRandomLocalSoundDenied(Handle:timer, client)
 
 public Action:EmitRandomLocalSoundPickedupOverride(Handle:timer, client)
 {
-	if(g_AnnouncerOverrideforClient[client])
+	if(g_AnnouncerOverrideforClient[client] && IsClientConnected(client))
 	{
 		new randomsoundoccurence = UTIL_GetRandomInt(0, 10);
 		if(randomsoundoccurence > 0)
@@ -1477,7 +1491,7 @@ public Action:EmitRandomLocalSoundPickedupOverride(Handle:timer, client)
 
 public Action:EmitRandomLocalSoundDeniedOverride(Handle:timer, client)
 {
-	if(g_AnnouncerOverrideforClient[client])
+	if(g_AnnouncerOverrideforClient[client] && IsClientConnected(client))
 	{
 		new randomsoundoccurence = UTIL_GetRandomInt(0, 10);
 		if(randomsoundoccurence > 0)
@@ -3006,9 +3020,12 @@ public OnMapEnd()
 	SetConVarInt(convar_nt_tdm_kf_enabled, 0);
 	SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0);
 	
-	ResetConVar(HealthKitConvar);
-	
-	ServerCommand("nt_healthkitdrop 0");
+	if(HealthKitConvar != INVALID_HANDLE)
+	{
+		ResetConVar(HealthKitConvar);
+	}
+	else
+		LogError("[TDM] Couldn't reset HealthKitConvar");
 	
 	
 	//ServerCommand("tpr_enabled 0");

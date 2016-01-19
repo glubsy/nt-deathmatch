@@ -51,12 +51,12 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
-	RegAdminCmd("sm_voterestart", Command_VoteNeoRestart, 0, "sm_voterestart");
-	RegAdminCmd("sm_votetdm", Command_VoteTDM, 0, "sm_votetdm");
-	RegAdminCmd("sm_votekf", Command_VoteKF, 0, "sm_votekf");
-	RegAdminCmd("sm_votehealthkits", Command_VoteHealthkits, 0, "sm_votehealthkits");
-	RegAdminCmd("sm_votekfhardcore", Command_VoteKF_Hardcore, 0, "sm_votekfhardcore");
-	RegAdminCmd("sm_votetribestokyo", Command_Votetribestokyo, 0, "sm_votetribestokyo");
+	RegConsoleCmd("sm_voterestart", Command_VoteNeoRestart, "sm_voterestart");
+	RegConsoleCmd("sm_votetdm", Command_VoteTDM, "sm_votetdm");
+	RegConsoleCmd("sm_votekf", Command_VoteKF, "sm_votekf");
+	RegConsoleCmd("sm_votehealthkits", Command_VoteHealthkits, "sm_votehealthkits");
+	RegConsoleCmd("sm_votekfhardcore", Command_VoteKF_Hardcore, "sm_votekfhardcore");
+	RegConsoleCmd("sm_votetribestokyo", Command_Votetribestokyo, "sm_votetribestokyo");
 	
 	g_Cvar_Limits[0] = CreateConVar("sm_vote_restart", "0.60", "percent required for successful round restart.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[1] = CreateConVar("sm_vote_tdm", "0.60", "percent required for successful TDM start.", 0, true, 0.05, true, 1.0);
