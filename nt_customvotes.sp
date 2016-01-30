@@ -100,7 +100,7 @@ public OnClientPostAdminCheck(client)
 
 	if(StrEqual(currentMap, "nt_vtol_ctg") || StrEqual(currentMap, "nt_isolation_ctg"))
 	{
-		CreateTimer(60.0, DisplayNotificationTribesTokyo, client);
+		CreateTimer(60.0, DisplayNotificationTribesTokyo, client, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 

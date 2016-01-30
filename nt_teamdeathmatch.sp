@@ -170,7 +170,7 @@ new Handle:g_SoundTimerOverride[MAXPLAYERS+1] = INVALID_HANDLE;
 
 new Handle:g_TimerRemoveProjectiles[MAXPLAYERS+1] = INVALID_HANDLE;
 new g_thrownDetpack[MAXPLAYERS+1][30];
-new g_thrownDetpack_cursor[30];
+new g_thrownDetpack_cursor[MAXPLAYERS+1];
 
 
 new bool:g_DogTagAnnouncer = false;
@@ -195,7 +195,9 @@ new const String:g_ConflictingPlugins[][] =
 	//"nt_damage.smx",  //FIXME enabling this may cause weird problems!
 	"nt_mirrordamage.smx",
 	"nt_playercount.smx",
-	"nt_unlimitedsquads.smx"
+	"nt_unlimitedsquads.smx",
+	"nt_slowmotion.smx",
+	"nt_ghostcapsfx.smx"
 	//"nt_tkpenaltyfix.smx" //enable to remove -1 on tk, on top of ours
 };
 
@@ -387,6 +389,9 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 			else
 				LogError("[TDM] Couldn't Find HealthKitConvar");
 		}
+		
+		
+		
 		
 		
 		//ServerCommand("sm_cv tpr_enabled 0"); //disabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
@@ -1883,10 +1888,9 @@ void InitArray()
 				i++;
 			} while (KvGotoNextKey(kv));
 			ladderlines = i; //we stire the number of ladder subkeys counted
-			//#if DEBUG > 1
+			#if DEBUG > 0
 			PrintToServer("[TDM] ladderlines : %d", ladderlines);
-			LogError("[TDM] ladderlines : %d", ladderlines);
-			//#endif		
+			#endif		
 			
 			
 		} while (false);  //this is weird, but it works... 
@@ -2713,9 +2717,9 @@ public OnEntityCreated(entity, const String:classname[])
 	}
 }
 
-public SpawnPost_MarkEntity(entity)
+public SpawnPost_MarkEntity(int entity)
 {
-	new client = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	int client = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 	#if DEBUG > 0
 	//this function was meant to change the owner of the projectile after spawn, but we don't really need that anymore.
 	PrintToServer("Grenade entity: %i, m_hOwnerEntity: %i", entity, client);
@@ -2770,7 +2774,7 @@ public Action:IterateRemainingDetpacks(Handle:timer, client)
 	PrintToServer("[DEBUG] Clearing all projectiles for client %i", client);
 	#endif
 	
-	for(new i = 0; i <= 29; i++)
+	for(int i = 0; i < 29; i++)
 	{
 		if(g_thrownDetpack[client][i] > MaxClients && IsValidEdict(g_thrownDetpack[client][i]))
 		{
@@ -2790,7 +2794,7 @@ public OnPlayerDisconnected(Handle:event, const String:name[], bool:dontBroadcas
 	if(g_TimerRemoveProjectiles[client] != INVALID_HANDLE)
 		KillTimer(g_TimerRemoveProjectiles[client]);	
 	
-	g_TimerRemoveProjectiles[client] = CreateTimer(3.0, IterateRemainingDetpacks, client, TIMER_FLAG_NO_MAPCHANGE);
+	g_TimerRemoveProjectiles[client] = CreateTimer(0.5, IterateRemainingDetpacks, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 
@@ -3012,7 +3016,8 @@ public OnMapEnd()
 	for(new i; i < MaxClients; i++)
 	{
 		//clearing handles for timers with flag TIMER_FLAG_NO_MAPCHANGE
-		g_TimerRemoveProjectiles[i] = INVALID_HANDLE;
+		if(g_TimerRemoveProjectiles[i] != INVALID_HANDLE)
+			g_TimerRemoveProjectiles[i] = INVALID_HANDLE;
 	}
 	
 	g_DMStarted = false;
