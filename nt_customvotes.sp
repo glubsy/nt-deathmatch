@@ -16,16 +16,16 @@ ConVar g_Cvar_Neorestart;
 ConVar g_Cvar_TDM;
 ConVar g_Cvar_KF;
 ConVar g_Cvar_Healthkits;
-ConVar g_Cvar_KF_Hardcore;
+ConVar g_Cvar_KCF_Hardcore;
 ConVar g_Cvar_tribestokyo;
 
 enum voteType
 {
 	neorestart, // = 0,
 	tdm,
-	kf,
+	kcf,
 	healthkits,
-	kf_hardcore,
+	kcf_hardcore,
 	tribestokyo
 };
 new voteType:g_voteType = voteType:neorestart;
@@ -53,23 +53,23 @@ public OnPluginStart()
 {
 	RegConsoleCmd("sm_voterestart", Command_VoteNeoRestart, "sm_voterestart");
 	RegConsoleCmd("sm_votetdm", Command_VoteTDM, "sm_votetdm");
-	RegConsoleCmd("sm_votekf", Command_VoteKF, "sm_votekf");
+	RegConsoleCmd("sm_votekcf", Command_VoteKF, "sm_votekcf");
 	RegConsoleCmd("sm_votehealthkits", Command_VoteHealthkits, "sm_votehealthkits");
-	RegConsoleCmd("sm_votekfhardcore", Command_VoteKF_Hardcore, "sm_votekfhardcore");
+	RegConsoleCmd("sm_votekcfhardcore", Command_VoteKCF_Hardcore, "sm_votekcfhardcore");
 	RegConsoleCmd("sm_votetribestokyo", Command_Votetribestokyo, "sm_votetribestokyo");
 	
 	g_Cvar_Limits[0] = CreateConVar("sm_vote_restart", "0.60", "percent required for successful round restart.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[1] = CreateConVar("sm_vote_tdm", "0.60", "percent required for successful TDM start.", 0, true, 0.05, true, 1.0);
-	g_Cvar_Limits[2] = CreateConVar("sm_vote_kf", "0.60", "percent required for successful Kill Confirmed mode start.", 0, true, 0.05, true, 1.0);
+	g_Cvar_Limits[2] = CreateConVar("sm_vote_kcf", "0.60", "percent required for successful Kill Confirmed mode start.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[3] = CreateConVar("sm_vote_healthkits", "0.60", "percent required to disable random healthkit spawning.", 0, true, 0.05, true, 1.0);
-	g_Cvar_Limits[4] = CreateConVar("sm_vote_kf_hardcore", "0.60", "percent required to disable Kill Confirmed HARDCORE mode.", 0, true, 0.05, true, 1.0);
+	g_Cvar_Limits[4] = CreateConVar("sm_vote_kcf_hardcore", "0.60", "percent required to disable Kill Confirmed HARDCORE mode.", 0, true, 0.05, true, 1.0);
 	g_Cvar_Limits[5] = CreateConVar("sm_vote_tribestokyo", "0.60", "percent required to disable TribesTokyo mode.", 0, true, 0.05, true, 1.0);
 	
 	g_Cvar_Neorestart = FindConVar("neo_restart_this");
 	g_Cvar_TDM = FindConVar("nt_tdm_enabled");
-	g_Cvar_KF = FindConVar("nt_tdm_kf_enabled");
+	g_Cvar_KF = FindConVar("nt_tdm_kcf_enabled");
 	g_Cvar_Healthkits = FindConVar("nt_healthkitdrop");
-	g_Cvar_KF_Hardcore = FindConVar("nt_tdm_kf_hardcore_enabled");
+	g_Cvar_KCF_Hardcore = FindConVar("nt_tdm_kcf_hardcore_enabled");
 	g_Cvar_tribestokyo = FindConVar("sm_nt_tribes");
 	
 	CreateTimer(5.0, CheckLateCvars);
@@ -86,9 +86,9 @@ public OnPluginStart()
 public Action:CheckLateCvars(Handle:timer)
 {
 	g_Cvar_TDM = FindConVar("nt_tdm_enabled");
-	g_Cvar_KF = FindConVar("nt_tdm_kf_enabled");
+	g_Cvar_KF = FindConVar("nt_tdm_kcf_enabled");
 	g_Cvar_Healthkits = FindConVar("nt_healthkitdrop");
-	g_Cvar_KF_Hardcore = FindConVar("nt_tdm_kf_hardcore_enabled");
+	g_Cvar_KCF_Hardcore = FindConVar("nt_tdm_kcf_hardcore_enabled");
 	g_Cvar_tribestokyo = FindConVar("sm_nt_tribes");
 }
 
@@ -132,9 +132,9 @@ public OnAdminMenuReady(Handle aTopMenu)
 	{
 		hTopMenu.AddItem("sm_voterestartthis", AdminMenu_VoteNeoRestart, voting_commands, "sm_voterestartthis", ADMFLAG_VOTE);
 		hTopMenu.AddItem("sm_votetdm", AdminMenu_VoteTDM, voting_commands, "sm_votetdm", ADMFLAG_VOTE);
-		hTopMenu.AddItem("sm_votekf", AdminMenu_VoteKF, voting_commands, "sm_votekf", ADMFLAG_VOTE);
+		hTopMenu.AddItem("sm_votekcf", AdminMenu_VoteKF, voting_commands, "sm_votekcf", ADMFLAG_VOTE);
 		hTopMenu.AddItem("sm_votehealthkits", AdminMenu_VoteHealthkits, voting_commands, "sm_votehealthkits", ADMFLAG_VOTE);
-		hTopMenu.AddItem("sm_votekfhardcore", AdminMenu_VoteKF_Hardcore, voting_commands, "sm_votekfhardcore", ADMFLAG_VOTE);
+		hTopMenu.AddItem("sm_votekcfhardcore", AdminMenu_VoteKCF_Hardcore, voting_commands, "sm_votekcfhardcore", ADMFLAG_VOTE);
 		hTopMenu.AddItem("sm_votetribestokyo", AdminMenu_Votetribestokyo, voting_commands, "sm_votetribestokyo", ADMFLAG_VOTE);
 	}
 }
@@ -221,9 +221,9 @@ public Handler_VoteCallback(Menu menu, MenuAction action, int param1, int param2
 					LogAction(-1, -1, "Changing TDM state due to vote.", (g_Cvar_TDM.BoolValue ? "0" : "1"));
 					g_Cvar_TDM.BoolValue = !g_Cvar_TDM.BoolValue;
 				}
-				case (voteType:kf):
+				case (voteType:kcf):
 				{
-					PrintToChatAll("[SM] Cvar changed", "nt_tdm_kf_enabled", (g_Cvar_KF.BoolValue ? "0" : "1"));
+					PrintToChatAll("[SM] Cvar changed", "nt_tdm_kcf_enabled", (g_Cvar_KF.BoolValue ? "0" : "1"));
 					LogAction(-1, -1, "Changing KF state due to vote.", (g_Cvar_KF.BoolValue ? "0" : "1"));
 					g_Cvar_KF.BoolValue = !g_Cvar_KF.BoolValue;
 				}
@@ -233,11 +233,11 @@ public Handler_VoteCallback(Menu menu, MenuAction action, int param1, int param2
 					LogAction(-1, -1, "Changing healthkitdrop state due to vote.", (g_Cvar_Healthkits.BoolValue ? "0" : "1"));
 					g_Cvar_Healthkits.BoolValue = !g_Cvar_Healthkits.BoolValue;
 				}
-				case (voteType:kf_hardcore):
+				case (voteType:kcf_hardcore):
 				{
-					PrintToChatAll("[SM] Cvar changed", "nt_tdm_kf_hardcore_enabled", (g_Cvar_KF_Hardcore.BoolValue ? "0" : "1"));
-					LogAction(-1, -1, "Changing KF Hardcore state due to vote.", (g_Cvar_KF_Hardcore.BoolValue ? "0" : "1"));
-					g_Cvar_KF_Hardcore.BoolValue = !g_Cvar_KF_Hardcore.BoolValue;
+					PrintToChatAll("[SM] Cvar changed", "nt_tdm_kcf_hardcore_enabled", (g_Cvar_KCF_Hardcore.BoolValue ? "0" : "1"));
+					LogAction(-1, -1, "Changing KF Hardcore state due to vote.", (g_Cvar_KCF_Hardcore.BoolValue ? "0" : "1"));
+					g_Cvar_KCF_Hardcore.BoolValue = !g_Cvar_KCF_Hardcore.BoolValue;
 				}
 				case (voteType:tribestokyo):
 				{
@@ -482,7 +482,7 @@ DisplayVoteKFMenu(client)
 	LogAction(client, -1, "\"%L\" initiated a vote for Kill Confirmed.", client);
 	ShowActivity2(client, "[SM]", "Initiated Vote KF");
 	
-	g_voteType = voteType:kf;
+	g_voteType = voteType:kcf;
 	g_voteInfo[VOTE_NAME][0] = '\0';
 
 	g_hVoteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
@@ -618,7 +618,7 @@ public Action:Command_VoteHealthkits(client, args)
 
 
 
-DisplayVoteKF_Hardcore_Menu(client)
+DisplayVoteKCF_Hardcore_Menu(client)
 {
 	if (IsVoteInProgress())
 	{
@@ -634,12 +634,12 @@ DisplayVoteKF_Hardcore_Menu(client)
 	LogAction(client, -1, "\"%L\" initiated a vote about KF Hardcore mode.", client);
 	ShowActivity2(client, "[SM]", "Initiated Vote about Kill Confirmed Hardcore mode.");
 	
-	g_voteType = voteType:kf_hardcore;
+	g_voteType = voteType:kcf_hardcore;
 	g_voteInfo[VOTE_NAME][0] = '\0';
 
 	g_hVoteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
 	
-	if (g_Cvar_KF_Hardcore.BoolValue)
+	if (g_Cvar_KCF_Hardcore.BoolValue)
 	{
 		g_hVoteMenu.SetTitle("Vote Kill Confirmed HARCDORE mode Off");
 	}
@@ -655,7 +655,7 @@ DisplayVoteKF_Hardcore_Menu(client)
 }
 
 
-public AdminMenu_VoteKF_Hardcore(Handle:topmenu, 
+public AdminMenu_VoteKCF_Hardcore(Handle:topmenu, 
 							  TopMenuAction:action,
 							  TopMenuObject:object_id,
 							  param,
@@ -668,7 +668,7 @@ public AdminMenu_VoteKF_Hardcore(Handle:topmenu,
 	}
 	else if (action == TopMenuAction_SelectOption)
 	{
-		DisplayVoteKF_Hardcore_Menu(param);
+		DisplayVoteKCF_Hardcore_Menu(param);
 	}
 	else if (action == TopMenuAction_DrawOption)
 	{	
@@ -677,15 +677,15 @@ public AdminMenu_VoteKF_Hardcore(Handle:topmenu,
 	}
 }
 
-public Action:Command_VoteKF_Hardcore(client, args)
+public Action:Command_VoteKCF_Hardcore(client, args)
 {
 	if (args > 0)
 	{
-		ReplyToCommand(client, "[SM] Usage: sm_votekfhardcore");
+		ReplyToCommand(client, "[SM] Usage: sm_votekcfhardcore");
 		return Plugin_Handled;	
 	}
 	
-	DisplayVoteKF_Hardcore_Menu(client);
+	DisplayVoteKCF_Hardcore_Menu(client);
 	
 	return Plugin_Handled;
 }

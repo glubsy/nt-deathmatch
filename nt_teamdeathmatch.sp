@@ -72,20 +72,20 @@ public Plugin:myinfo =
 };
 //new Handle:convar_nt_tdm_version = INVALID_HANDLE;
 new Handle:convar_nt_tdm_enabled = INVALID_HANDLE;
-ConVar convar_nt_tdm_kf_enabled; 
+ConVar convar_nt_tdm_kcf_enabled; 
 new Handle:convar_nt_tdm_timelimit = INVALID_HANDLE;
 new Handle:convar_nt_tdm_spawnprotect = INVALID_HANDLE;
 new Handle:convar_nt_tdm_randomplayerspawns = INVALID_HANDLE;
 new Handle:convar_nt_tdm_ammo_respawn_time = INVALID_HANDLE;
 new Handle:convar_nt_tdm_grenade_respawn_time = INVALID_HANDLE;
 new Handle:convar_nt_dogtag_remove_timer = INVALID_HANDLE;
-ConVar convar_nt_tdm_kf_hardcore_enabled;
+ConVar convar_nt_tdm_kcf_hardcore_enabled;
 new Handle:convar_nt_dogtag_announcer = INVALID_HANDLE;
 new Handle:HealthKitConvar = INVALID_HANDLE;
 
 new bool:g_DMStarted = false;
-new bool:g_KF_enabled = false;
-new bool:g_KF_Hardcore_enabled = false;
+new bool:g_KCF_enabled = false;
+new bool:g_KCF_Hardcore_enabled = false;
 
 new Float:g_AmmoRespawnTime;
 new Float:g_GrenadeRespawnTime;
@@ -209,8 +209,8 @@ public OnPluginStart()
 	convar_nt_tdm_timelimit = CreateConVar("nt_tdm_timelimit", "20", "Sets team deathmatch timelimit.", FCVAR_PLUGIN, true, 0.0, true, 60.0);
 	convar_nt_tdm_spawnprotect = CreateConVar("nt_tdm_spawnprotect", "5.0", "Length of time to protect spawned players", FCVAR_PLUGIN, true, 0.0, true, 30.0);
 	convar_nt_tdm_randomplayerspawns = CreateConVar("nt_tdm_randomplayerspawns", "1", "Activates or deactivates random spawns from keyvalue file", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	convar_nt_tdm_kf_enabled = CreateConVar("nt_tdm_kf_enabled", "0", "Enables or Disables Kill Confirmed.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	convar_nt_tdm_kf_hardcore_enabled = CreateConVar("nt_tdm_kf_hardcore_enabled", "0", "Enables or Disables gaining points ONLY by pickup up dogtags.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	convar_nt_tdm_kcf_enabled = CreateConVar("nt_tdm_kcf_enabled", "0", "Enables or Disables Kill Confirmed.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	convar_nt_tdm_kcf_hardcore_enabled = CreateConVar("nt_tdm_kcf_hardcore_enabled", "0", "Enables or Disables gaining points ONLY by pickup up dogtags.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	convar_nt_tdm_ammo_respawn_time = CreateConVar("nt_tdm_ammo_respawn_time", "45.0", "Time in seconds before an ammo pack will respawn", FCVAR_PLUGIN);
 	convar_nt_tdm_grenade_respawn_time = CreateConVar("nt_tdm_grenade_respawn_time", "60.0", "Time in seconds before a grenade pack will respawn", FCVAR_PLUGIN);
 	convar_nt_dogtag_remove_timer = CreateConVar("nt_dogtag_remove_time", "40.0", "Time in seconds before a dogtag disappears", FCVAR_PLUGIN);
@@ -219,15 +219,15 @@ public OnPluginStart()
 	AutoExecConfig(true);
 	
 	RegAdminCmd("sm_tdm_enable", Command_TDM_Enable, ADMFLAG_KICK, "Enables or disables team deathmatch game mode.");
-	RegAdminCmd("sm_kf_enable", Command_KF_Enable, ADMFLAG_KICK, "Enables or disables Kill Confirmed game mode.");
+	RegAdminCmd("sm_kcf_enable", Command_KCF_Enable, ADMFLAG_KICK, "Enables or disables Kill Confirmed game mode.");
 	RegAdminCmd("sm_randomplayerspawns", Command_Randomplayerspawns, ADMFLAG_KICK, "Enables or disables random player spawns.");
 	RegAdminCmd("sm_tdm_timelimit", Command_TDM_Timelimit, ADMFLAG_KICK, "Sets team deathmatch timelimit.");
-	RegAdminCmd("sm_kf_hardcore_enable", Command_KF_Hardcore_Enable, ADMFLAG_KICK, "Enables or disables gaining points ONLY by pickup up dogtags.");
+	RegAdminCmd("sm_kcf_hardcore_enable", Command_KCF_Hardcore_Enable, ADMFLAG_KICK, "Enables or disables gaining points ONLY by pickup up dogtags.");
 	RegAdminCmd("sm_announcer_enabled", Command_AnnouncerEnabled, ADMFLAG_KICK, "Enables or disables dumb announcer for all.");
 	RegConsoleCmd("sm_announcer", Command_ToggleAnnouncer, "Toggles the announcer on/off.");
 	
 	
-	RegAdminCmd("sm_kf_reload_kvfile", Command_KF_Reload_kvfile, ADMFLAG_KICK, "Reloads KeyValue files for coordinates.");
+	RegAdminCmd("sm_kcf_reload_kvfile", Command_KCF_Reload_kvfile, ADMFLAG_KICK, "Reloads KeyValue files for coordinates.");
 	RegAdminCmd("sm_tdm_forcerespawnladders", ForceSpawnLadder, ADMFLAG_KICK, "DEBUG: force respawning ladders.");
 	
 	#if DEBUG > 1
@@ -247,8 +247,8 @@ public OnPluginStart()
 	HookConVarChange(convar_nt_tdm_randomplayerspawns, OnChangePlayerRandomSpawnsCvar);
 	HookConVarChange(convar_nt_tdm_ammo_respawn_time, OnChangedCvar);
 	HookConVarChange(convar_nt_tdm_grenade_respawn_time, OnChangedCvar);
-	HookConVarChange(convar_nt_tdm_kf_enabled, OnChangeKFEnabledCvar);
-	HookConVarChange(convar_nt_tdm_kf_hardcore_enabled, OnChangeKF_Hardcore_EnabledCvar);
+	HookConVarChange(convar_nt_tdm_kcf_enabled, OnChangeKFEnabledCvar);
+	HookConVarChange(convar_nt_tdm_kcf_hardcore_enabled, OnChangeKCF_Hardcore_EnabledCvar);
 	HookConVarChange(convar_nt_dogtag_remove_timer, OnChangedCvar);
 	HookConVarChange(convar_nt_dogtag_announcer, OnChangedCvar);
 	
@@ -361,7 +361,7 @@ public CheckConvarsOnMapLoaded()
 		SetConVarInt(convar_nt_tdm_enabled, 0);
 }
 
-public Action:Command_KF_Reload_kvfile(client, args)
+public Action:Command_KCF_Reload_kvfile(client, args)
 {
 	InitArray();
 }
@@ -395,8 +395,8 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		
 		
 		//ServerCommand("sm_cv tpr_enabled 0"); //disabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
-		SetConVarInt(convar_nt_tdm_kf_enabled, 0); 
-		SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0); 
+		SetConVarInt(convar_nt_tdm_kcf_enabled, 0); 
+		SetConVarInt(convar_nt_tdm_kcf_hardcore_enabled, 0); 
 
 	}
 	if (GetConVarBool(convar_nt_tdm_enabled))   // Cvar is set to 1, we are starting
@@ -427,8 +427,8 @@ public OnConfigsExecutedHook(Handle:cvar, const String:oldVal[], const String:ne
 		
 		//ServerCommand("sm_cv tpr_enabled 1");  //enabling projectile replacements for fun here (needs tpr_replacer.smx and cvar squelcher)
 		
-		SetConVarInt(convar_nt_tdm_kf_enabled, 1); //we start KF enabled by default with TDM for now. FIXME: remove later.
-		//SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 1); //if we want hardcore by default
+		SetConVarInt(convar_nt_tdm_kcf_enabled, 1); //we start KF enabled by default with TDM for now. FIXME: remove later.
+		//SetConVarInt(convar_nt_tdm_kcf_hardcore_enabled, 1); //if we want hardcore by default
 		PrintToServer("[TDM] you can disable the dumb announcer with !announcer");
 	}
 } 
@@ -568,34 +568,34 @@ public Action:Command_ToggleAnnouncer(client, args)
 
 public OnChangeKFEnabledCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	if (GetConVarBool(convar_nt_tdm_kf_enabled))
+	if (GetConVarBool(convar_nt_tdm_kcf_enabled))
 	{
-		g_KF_enabled = true;
+		g_KCF_enabled = true;
 		PrintToChatAll("========================================");
 		PrintToChatAll("       Kill Confirmed mode is now enabled!");
 		PrintToChatAll("========================================");
 	}
-	if (!GetConVarBool(convar_nt_tdm_kf_enabled))
+	if (!GetConVarBool(convar_nt_tdm_kcf_enabled))
 	{
-		g_KF_enabled = false;
+		g_KCF_enabled = false;
 		PrintToChatAll("========================================");
 		PrintToChatAll("       Kill Confirmed mode is now disabled.");
 		PrintToChatAll("========================================");
 	}
 }
 
-public OnChangeKF_Hardcore_EnabledCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
+public OnChangeKCF_Hardcore_EnabledCvar(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
-	if (GetConVarBool(convar_nt_tdm_kf_hardcore_enabled))
+	if (GetConVarBool(convar_nt_tdm_kcf_hardcore_enabled))
 	{
-		g_KF_Hardcore_enabled = true;
+		g_KCF_Hardcore_enabled = true;
 		PrintToChatAll("========================================");
 		PrintToChatAll("       Kill Confirmed HARDCORE mode is now enabled!");
 		PrintToChatAll("========================================");
 	}
-	if (!GetConVarBool(convar_nt_tdm_kf_hardcore_enabled))
+	if (!GetConVarBool(convar_nt_tdm_kcf_hardcore_enabled))
 	{
-		g_KF_Hardcore_enabled = false;
+		g_KCF_Hardcore_enabled = false;
 		PrintToChatAll("========================================");
 		PrintToChatAll("       Kill Confirmed HARDCORE mode is now disabled.");
 		PrintToChatAll("========================================");
@@ -629,12 +629,12 @@ public Action:Command_TDM_Enable(client, args)
 	return Plugin_Handled;
 }
 
-public Action:Command_KF_Enable(client, args)
+public Action:Command_KCF_Enable(client, args)
 {
 	if (args < 1)
 	{
-		ReplyToCommand(client, "[SM] Usage: sm_kf_enable <1|0>");
-		ReplyToCommand(client, "[SM] sm_kf_enable is currently %i", GetConVarInt(convar_nt_tdm_kf_enabled));
+		ReplyToCommand(client, "[SM] Usage: sm_kcf_enable <1|0>");
+		ReplyToCommand(client, "[SM] sm_kcf_enable is currently %i", GetConVarInt(convar_nt_tdm_kcf_enabled));
 		return Plugin_Handled;
 	}
 	else{	
@@ -642,24 +642,24 @@ public Action:Command_KF_Enable(client, args)
 		GetCmdArg(1, enabled, sizeof(enabled));
 		if(StrEqual(enabled, "1"))
 		{
-			SetConVarInt(convar_nt_tdm_kf_enabled, 1);
-			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kf_enabled));
+			SetConVarInt(convar_nt_tdm_kcf_enabled, 1);
+			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kcf_enabled));
 		}
 		else
 		{
-			SetConVarInt(convar_nt_tdm_kf_enabled, 0);
-			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kf_enabled));
+			SetConVarInt(convar_nt_tdm_kcf_enabled, 0);
+			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kcf_enabled));
 		}
 	}
 	return Plugin_Handled;
 }
 
-public Action:Command_KF_Hardcore_Enable(client, args)
+public Action:Command_KCF_Hardcore_Enable(client, args)
 {
 	if (args < 1)
 	{
-		ReplyToCommand(client, "[SM] Usage: sm_kf_hardcore_enable <1|0>");
-		ReplyToCommand(client, "[SM] sm_kf_hardcore_enable is currently %i", GetConVarInt(convar_nt_tdm_kf_hardcore_enabled));
+		ReplyToCommand(client, "[SM] Usage: sm_kcf_hardcore_enable <1|0>");
+		ReplyToCommand(client, "[SM] sm_kcf_hardcore_enable is currently %i", GetConVarInt(convar_nt_tdm_kcf_hardcore_enabled));
 		return Plugin_Handled;
 	}
 	else{	
@@ -667,13 +667,13 @@ public Action:Command_KF_Hardcore_Enable(client, args)
 		GetCmdArg(1, enabled, sizeof(enabled));
 		if(StrEqual(enabled, "1"))
 		{
-			SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 1);
-			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kf_hardcore_enabled));
+			SetConVarInt(convar_nt_tdm_kcf_hardcore_enabled, 1);
+			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kcf_hardcore_enabled));
 		}
 		else
 		{
-			SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0);
-			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kf_hardcore_enabled));
+			SetConVarInt(convar_nt_tdm_kcf_hardcore_enabled, 0);
+			//ReplyToCommand(client, "[SM] Kill Confirmed is now %i", GetConVarInt(convar_nt_tdm_kcf_hardcore_enabled));
 		}
 	}
 	return Plugin_Handled;
@@ -1017,7 +1017,7 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	if (g_DMStarted)
 	{
-		if(!g_KF_enabled)
+		if(!g_KCF_enabled)
 		{
 			new victim = GetClientOfUserId(GetEventInt(event, "userid"));
 			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
@@ -1042,7 +1042,7 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 			g_TimerRemoveProjectiles[victim] = CreateTimer(9.0, IterateRemainingDetpacks, victim); //removing remaining detpacks on the ground
 		}
 	
-		if (g_KF_enabled)				//Question: do we give a player point for killing, and a team point for picking up a dogtag?
+		if (g_KCF_enabled)				//Question: do we give a player point for killing, and a team point for picking up a dogtag?
 		{
 			new victim = GetClientOfUserId(GetEventInt(event, "userid"));
 			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
@@ -1063,7 +1063,7 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 			}
 			
 			//removing the kill point for the player in HardCore mode
-			if(g_KF_Hardcore_enabled)
+			if(g_KCF_Hardcore_enabled)
 				SetEntProp(attacker, Prop_Data, "m_iFrags", GetEntProp(attacker, Prop_Data, "m_iFrags") - 1 ); 
 			
 
@@ -1090,7 +1090,7 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 	}
 	if (!g_DMStarted) 
 	{
-		if (g_KF_enabled)				//if we want KF in CTG for example
+		if (g_KCF_enabled)				//if we want KF in CTG for example
 		{
 			new victim = GetClientOfUserId(GetEventInt(event, "userid"));
 			new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
@@ -1108,7 +1108,7 @@ public OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 			}
 			
 			//removing the kill point for the player in HardCore mode
-			if(g_KF_Hardcore_enabled)
+			if(g_KCF_Hardcore_enabled)
 				SetEntProp(attacker, Prop_Data, "m_iFrags", GetEntProp(attacker, Prop_Data, "m_iFrags") - 1 ); 
 
 			new Float:deathorigin[3];
@@ -1303,7 +1303,7 @@ public Action OnDogTagTouched(int dogtag_entity, int client)
 				{
 					SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  // adding one point to team score board
 				}
-				if(g_KF_Hardcore_enabled)
+				if(g_KCF_Hardcore_enabled)
 				{
 					SetEntProp(client, Prop_Data, "m_iFrags", GetEntProp(client, Prop_Data, "m_iFrags") + 1 ); //adding one point to player (if hardcore mode enabled)
 				}
@@ -1396,7 +1396,7 @@ public Action OnDogTagTouched(int dogtag_entity, int client)
 					SetTeamScore(playerteam, GetTeamScore(playerteam) + 1);  // adding one point to team score board
 				}
 				
-				if(g_KF_Hardcore_enabled)
+				if(g_KCF_Hardcore_enabled)
 				{
 					SetEntProp(client, Prop_Data, "m_iFrags", GetEntProp(client, Prop_Data, "m_iFrags") + 1 ); //adding one point to player (if hardcore mode enabled)
 				}
@@ -1527,7 +1527,7 @@ public OnPlayerSpawn(Handle:event,const String:name[],bool:dontBroadcast)
 
 			CreateTimer(GetConVarFloat(convar_nt_tdm_spawnprotect), timer_PlayerProtect, client);
 			
-			if(GetConVarBool(convar_nt_tdm_kf_enabled))
+			if(GetConVarBool(convar_nt_tdm_kcf_enabled))
 				CreateTimer(2.0, AllowClientToDenyDogTags, client);
 			
 			if(g_kvfilefound)
@@ -3022,8 +3022,8 @@ public OnMapEnd()
 	
 	g_DMStarted = false;
 	SetConVarInt(convar_nt_tdm_enabled, 0);
-	SetConVarInt(convar_nt_tdm_kf_enabled, 0);
-	SetConVarInt(convar_nt_tdm_kf_hardcore_enabled, 0);
+	SetConVarInt(convar_nt_tdm_kcf_enabled, 0);
+	SetConVarInt(convar_nt_tdm_kcf_hardcore_enabled, 0);
 	
 	if(HealthKitConvar != INVALID_HANDLE)
 	{
